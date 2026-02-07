@@ -4,7 +4,7 @@
 
 EcoWizard is a React Native application that empowers individuals to fight climate change through "magical" actions (spells) that benefit the community. Aligned with UGAHacks Track 8 (Magic!) and the State Farm sponsor track (community benefit), this guide outlines a feasible 48-hour build for a 3-person team. We focus on one core feature loop and a couple of high-impact secondary features – all framed as fun spells in a magic-themed interface. Each spell corresponds to an environmentally positive action, with clear feedback on real-world impact. The goal is to wow judges with a polished demo loop, compelling storytelling, and tangible community benefits.
 
-**Core Idea:** Users cast spells by performing eco-friendly actions (like recycling or saving energy), verified through the app, and earn Greenhouse Gas (GHG) points as "magical rewards." The app quantifies the environmental impact of each action (e.g. CO₂ saved) to show clarity of impact. We'll implement a primary spell (recyclability scan with photo proof and points) and 1–2 secondary spells (e.g. energy tracking and food donation routing) that are simple yet meaningful. DigitalOcean services (Spaces, App Platform, Managed DB) will be used to handle image storage, backend logic, and data persistence, ensuring a scalable and sponsor-aligned tech stack. Throughout, the design uses magical storytelling – the user is a wizard casting spells to protect the community and the planet.
+**Core Idea:** Users cast spells by performing eco-friendly actions (like recycling or saving energy), verified through the app, and earn Greenhouse Gas (GHG) points as "magical rewards." The app quantifies the environmental impact of each action (e.g. CO₂ saved) to show clarity of impact. We'll implement a primary spell (recyclability scan with photo proof and points) and 1–2 secondary spells (e.g. energy tracking and food donation routing) that are simple yet meaningful. Supabase services (Storage, Edge Functions, PostgreSQL Database, and Auth) will be used to handle image storage, backend logic, data persistence, and user authentication, ensuring a scalable and modern tech stack. Throughout, the design uses magical storytelling – the user is a wizard casting spells to protect the community and the planet.
 
 ## Core Feature (Main Spell): Recyclability Scan & GHG Points
 
@@ -18,13 +18,13 @@ EcoWizard is a React Native application that empowers individuals to fight clima
 
 - **Image Recognition:** We can train or use a small image classifier to recognize the recycling code symbol (digits 1–7 for plastic types). In fact, others have successfully built hacks that let users snap a picture of the plastic resin code to get recycling info [alyssax.substack.com]. We could utilize an existing dataset of the 7 plastic codes [alyssax.substack.com] to train a simple model before the hack or use an on-device ML solution (TensorFlow Lite or an Expo plugin) to classify the symbol. If training a custom model is infeasible in 48 hours, an alternative is using OCR: the app can isolate the region and use a text recognition library (Tesseract or a cloud API) to read the number in the triangle. Another approach is leveraging a cloud vision API to identify the material or logo on the item (for example, the Bower recycling app uses AI to detect item type and material automatically [plasticstoday.com]). For our hack, we might implement a simpler version: have the user focus on the recycle logo and attempt to OCR the digit.
 
-- **Backend Processing:** The image snapped is sent to a backend for processing (if using a heavier ML model or OCR). We'll deploy a Node.js (or Python Flask) server on DigitalOcean App Platform for this. The backend can use a small TensorFlow model or an OCR library to identify the material code. App Platform is ideal here as it lets us quickly deploy code without managing infrastructure, so we can get our image-processing API up within the hack timeframe [digitalocean.com].
+- **Backend Processing:** The image snapped is sent to a backend for processing (if using a heavier ML model or OCR). We'll deploy serverless functions using Supabase Edge Functions (Deno/TypeScript-based) for this. The backend can use a small TensorFlow model or an OCR library to identify the material code. Edge Functions are ideal here as they let us quickly deploy code without managing infrastructure, and they scale automatically – so we can get our image-processing API up within the hack timeframe [supabase.com/docs/guides/functions].
 
 - **Guidance & Info:** Once the item type is determined (e.g. plastic #5, or "paper" or "glass bottle"), the app looks up the recycling instructions and CO₂/energy savings for that type. We will compile a tiny reference dataset (e.g., "Plastic #1 (PET) – recyclable in most curbside programs; ~1.5 kg CO₂ saved per 10 items recycled" etc., drawn from sources like London Recycles or EPA). This info can be hard-coded or stored in a small database.
 
-- **DigitalOcean Spaces (Image Storage):** We will store user photos (the taken images and verification shots) in DO Spaces, which is an S3-compatible object storage [medium.com]. When a user snaps a photo, the app can upload it (via a pre-signed URL or through our backend) to a Spaces bucket. This keeps images off the device and accessible for later review or for machine learning processing. Spaces offers a simple API (compatible with AWS SDK) and generous free transfer, which is perfect for a hack project storing images [medium.com].
+- **Supabase Storage (Image Storage):** We will store user photos (the taken images and verification shots) in Supabase Storage, which provides secure file storage with built-in access controls [supabase.com/docs/guides/storage]. When a user snaps a photo, the app can upload it directly using the Supabase JS client library (`supabase.storage.from('photos').upload(...)`) to a storage bucket. This keeps images off the device and accessible for later review or for machine learning processing. Supabase Storage integrates seamlessly with Supabase Auth (so only authenticated users can upload) and offers a generous free tier (1 GB), which is perfect for a hack project storing images.
 
-- **Database:** To track user points, profiles, and recycled items, we use a DigitalOcean Managed Database (likely PostgreSQL for relational data, or MongoDB if using a more flexible schema). A managed DB saves us setup time and provides reliability out-of-the-box. Our backend server can securely connect to the managed DB to log each recycling event (user ID, timestamp, item type, points awarded). Using DO's managed DB means we don't worry about maintenance during the hack and get easy scalability and backups if needed.
+- **Database:** To track user points, profiles, and recycled items, we use Supabase's built-in PostgreSQL database. Supabase provides a fully managed Postgres instance with a generous free tier (500 MB), saving us setup time and providing reliability out-of-the-box. Our app can interact with the database directly through the Supabase client SDK or the auto-generated REST API (PostgREST), eliminating the need for custom ORM setup. We can use Row Level Security (RLS) policies to ensure users can only access their own data. Each recycling event (user ID, timestamp, item type, points awarded) is logged via simple Supabase queries. This means we don't worry about maintenance during the hack and get easy scalability and backups.
 
 - **Frontend Implementation:** On the React Native side, we'll use Expo's Camera module for capturing photos. The UI will overlay a semi-transparent image (like a magical circle targeting reticle) to align the recycling symbol – making the experience immersive. Once the photo is taken and we receive the analysis from the backend, we display the result in an animated modal: e.g., an animation of a scroll unfurling with the text "Spell Success! This item is recyclable. You've earned +5 GHG points (≈0.2 kg CO₂ saved).". If the item is not recyclable, the app can respond with a friendly failure message, e.g., "Alas, this item is non-recyclable (a missed spell) – better to avoid such items or find a special drop-off." Throughout, the copy will maintain a magical tone (the user is addressed as an Eco-Wizard or apprentice).
 
@@ -50,7 +50,7 @@ EcoWizard is a React Native application that empowers individuals to fight clima
 
 - The user's history of energy data can be visualized with a chart. Using a library like Victory Native or React Native Charts, we can display a quick line or bar chart of past months. This helps the user see the magic of progress over time.
 
-- If time permits, we can integrate this with the backend (store the readings in the database via an API call) so the data persists across logins/devices. A managed database on DigitalOcean would easily handle these records.
+- If time permits, we can integrate this with the backend (store the readings in the database via a Supabase client call) so the data persists across logins/devices. Supabase's PostgreSQL database easily handles these records and syncs across devices for authenticated users.
 
 - The magic theme can be infused by the UI/UX: for example, when the user enters their data and hits "Cast Spell," an animation of a glowing energy orb could appear, then shatter to reveal the results (like a prophecy). We can use Lottie files or simple Animated API for such effects.
 
@@ -74,7 +74,7 @@ EcoWizard is a React Native application that empowers individuals to fight clima
 
 - No complex backend is needed for this; the data can be fetched client-side. However, if we want to store the fact that a user made a donation, we could send a record to our backend (similar to recycling events) to add points and perhaps verify later. For demo purposes, it might be enough to simulate the donation confirmation.
 
-- DigitalOcean App Platform could host a small service if we decide to, say, proxy the Google Places queries (to hide API keys) or to store new donation site suggestions in a database. But a direct API call from the app is fine if the key is restricted to certain domains.
+- A Supabase Edge Function could serve as a small proxy service if we decide to, say, proxy the Google Places queries (to hide API keys) or to store new donation site suggestions in the database. But a direct API call from the app is fine if the key is restricted to certain domains.
 
 - After the user hits "Donated!", the app will increment their points. This logic can be local (optimistically update points on the client) and also sent to the server to update their total in the DB. We should include this in the same user points table as recycling and energy, with an action type "donation" and points.
 
@@ -102,27 +102,296 @@ In summary, the magic theme is not just window-dressing – it's a motivational 
 
 ## Technology Stack & Architecture
 
-Below is the proposed tech stack, leveraging DigitalOcean services for a robust yet hackathon-friendly setup, *perform unit testing while developing to ensure components and features work correctly before implementing following steps*:
+Below is the proposed tech stack, leveraging Supabase as our primary backend platform for a robust yet hackathon-friendly setup, *perform unit testing while developing to ensure components and features work correctly before implementing following steps*:
 
 - **Frontend:** React Native (JavaScript/TypeScript) – likely using Expo for rapid development. This allows us to develop and deploy quickly to both iOS and Android from one codebase. We will use libraries like Expo Camera, perhaps Expo Location (for donation finder), and any UI kit needed (or just StyleSheet). The app state management can be minimal (Context or Redux if needed for points globally). Expo also eases using vector icons (for magical icons) and deploying a demo build to devices.
 
-- **Backend:** Node.js server on DigitalOcean App Platform. We'll create a simple REST API (using Express) with endpoints such as `/analyzeRecycle` (for image analysis), `/submitEnergy` (to record energy usage), `/donationSites?lat=xx&lon=yy` (to fetch nearby donation locations), and `/userActions` (POST to log an action and update points). App Platform will build and serve our Node app with minimal config – we just push to a repo and it deploys automatically [digitalocean.com]. This saves time on DevOps and ensures we can scale or tweak easily during the hack. We choose the App Platform Starter tier (which is free) for cost efficiency. If needed, we might use a serverless function (DigitalOcean Functions) for the image analysis to scale it, but given hack scale, one server is fine.
+- **Backend:** Supabase handles most of our backend needs out-of-the-box. For simple CRUD operations (recording energy usage, logging user actions, updating points), we use Supabase's auto-generated REST API (PostgREST) – no custom server code needed. For more complex logic like image analysis, we deploy Supabase Edge Functions (Deno/TypeScript serverless functions) with endpoints such as `analyze-recycle` (for image analysis) and `donation-sites` (to fetch nearby donation locations). Edge Functions deploy via the Supabase CLI with minimal config and scale automatically [supabase.com/docs/guides/functions]. This saves time on DevOps and ensures we can iterate quickly during the hack. The free tier is generous enough for our hackathon needs.
 
-- **Object Storage:** DigitalOcean Spaces – used for storing images (photos of recyclables and verification). The React Native app can either directly upload to Spaces using the AWS S3 SDK (thanks to Spaces' S3 compatibility [medium.com]) or use a presigned URL from our backend (for security). Storing images in Spaces offloads that burden from our backend and allows us to serve them later if needed (e.g., if we had a feature to review past actions or for judges to see the stored proofs). Spaces usage also shows we incorporated the sponsor's tech meaningfully.
+- **Object Storage:** Supabase Storage – used for storing images (photos of recyclables and verification). The React Native app uploads directly to Supabase Storage using the `@supabase/supabase-js` client library, which handles authentication and file management seamlessly. We can configure storage buckets with Row Level Security policies so each user can only access their own uploads. Storing images in Supabase Storage offloads that burden from our frontend and allows us to serve them later if needed (e.g., if we had a feature to review past actions or for judges to see the stored proofs). This integrates natively with the rest of our Supabase stack.
 
-- **Database:** DigitalOcean Managed Database (PostgreSQL). We'll have tables like Users (id, name, etc.), Actions (id, user_id, type [recycle/energy/donate], timestamp, details, points_awarded), and perhaps Leaderboard or Locations. Using a managed DB means we don't spend time configuring Postgres – DO provides a connection string, and we use an npm library (pg) to interact. The DB can handle our simple transactions easily, and we get the benefit of durability (even if our backend crashes, data stays safe) and possibly easy scaling beyond hackathon. For a hack demo, we might also use a simpler solution like storing data in-memory or in a JSON file if pressed for time, but setting up the managed DB early would score points in judging (showing we used DO's offerings).
+- **Database:** Supabase PostgreSQL Database. We'll have tables like Users (id, email, name, avatar_url, total_points, level, etc.), Actions (id, user_id, type [recycle/energy/donate], timestamp, details, points_awarded), and perhaps Leaderboard or Locations. Supabase provisions a full Postgres instance instantly – we get a connection string and can also interact via the auto-generated REST API or the JS client library (`supabase.from('actions').insert(...)`) with zero ORM setup. We'll use Row Level Security (RLS) policies to ensure data isolation per user. The DB handles our simple transactions easily, and we get the benefit of durability and easy scaling beyond the hackathon. Supabase also provides a built-in Table Editor UI for quickly inspecting and managing data during development.
 
 - **External APIs & Libraries:**
   - **Image Recognition/OCR:** Possibly using an external service for convenience – e.g., Google Cloud Vision for text detection (to read recycling codes) or a small ML model hosted on our backend. Since integration of heavy ML in React Native might be tricky, the backend approach is safer. We could explore using TensorFlow.js on the backend to load a pre-trained model for classifying recycle symbols (the EcoSnap hack used a TensorFlow model via serverless functions [alyssax.substack.com]). Another lightweight trick: use an open-source model for general object recognition (e.g., MobileNet) to guess the material (bottle, can, paper) – not as precise for recyclability specifics, but could identify obvious items.
   - **Maps/Places:** Google Maps API for location search (for donation sites). Alternatively, use a public dataset or simple stored list if API integration is an issue. If using Google, we'll restrict to minimal calls. A Map view may require an API key for the map SDK (could use Mapbox as alternative if needed).
   - **Animations/UI:** Lottie for any complex animations (there are existing JSON animations for magical effects), React Native Animatable for quick transitions, etc. These make the app look polished with little effort.
-  - **Auth:** If we include user accounts (not strictly required for demo), we might use a quick Auth0 or Firebase Auth for simplicity. However, for a 48-hour build, we might skip login and just have a single default user or a quick name input. The focus is on functionality, so authentication can be minimal or simulated.
+  - **Auth:** We will use Supabase Auth for user sign-up and login. Supabase Auth supports email/password, magic link (passwordless), and social OAuth providers (Google, GitHub, etc.) out-of-the-box with minimal configuration. The `@supabase/supabase-js` SDK provides ready-made methods (`supabase.auth.signUp()`, `supabase.auth.signInWithPassword()`, etc.) that integrate directly with our React Native app. Auth sessions are automatically managed, and authenticated users' IDs are available in Row Level Security policies to protect per-user data. See the **User Authentication (Sign Up / Log In)** section below for full implementation details.
 
-- **Architecture Diagram:** (If describing to judges, we can outline) The mobile app (React Native) talks to our backend API (hosted on DO App Platform). The backend in turn interacts with the DB for storing/retrieving data and with Spaces for storing/fetching images. External APIs (vision, maps) are called by either the app or backend as appropriate. This modular approach keeps the client light and leverages cloud where needed. It's also meaningful to sponsors: using DO for hosting, storage, and DB demonstrates a full-stack solution on their platform.
+- **Architecture Diagram:** (If describing to judges, we can outline) The mobile app (React Native) talks directly to Supabase for auth, database queries, and file storage using the `@supabase/supabase-js` client. For complex processing (image analysis), the app invokes Supabase Edge Functions, which can call external ML APIs and write results back to the database. External APIs (vision, maps) are called by either the app or Edge Functions as appropriate. This modular approach keeps the client light and leverages Supabase's unified platform for all backend needs – auth, database, storage, and serverless functions in one place.
 
-(Optional for documentation: diagram explanation, but since we cannot easily embed a custom diagram here, we verbally convey it.) For instance: Mobile App → (upload image) → DO Spaces; Mobile App → (API call) → Node/Express (DO App Platform) → ML model or API to analyze → returns result → Node saves record to DO Database → returns response to App → App updates UI. Similarly, for fetching donation locations: App → Google API (or our Node as proxy) → returns locations → App displays, etc.
+(Optional for documentation: diagram explanation, but since we cannot easily embed a custom diagram here, we verbally convey it.) For instance: Mobile App → (auth) → Supabase Auth; Mobile App → (upload image) → Supabase Storage; Mobile App → (invoke function) → Supabase Edge Function → ML model or API to analyze → Edge Function saves record to Supabase DB → returns response to App → App updates UI. For simple data operations: Mobile App → (direct query) → Supabase DB (via PostgREST). For fetching donation locations: App → Google API (or Edge Function as proxy) → returns locations → App displays, etc.
 
-This tech stack is reasonable for 3 people in 2 days: one can focus on the React Native front-end, another on setting up backend/API and ML integration, and the third can assist with data (points logic, content like recycling info) and polishing UI/UX (making those magic animations, writing the storyline text). Using DigitalOcean's managed services minimizes "plumbing" work, letting us concentrate on core features.
+This tech stack is reasonable for 3 people in 2 days: one can focus on the React Native front-end and auth flows, another on setting up Supabase (database schema, Edge Functions, ML integration), and the third can assist with data (points logic, content like recycling info) and polishing UI/UX (making those magic animations, writing the storyline text). Using Supabase as a unified platform minimizes "plumbing" work – one dashboard for auth, database, storage, and serverless functions – letting us concentrate on core features.
+
+## User Authentication (Sign Up / Log In)
+
+User accounts are essential for persisting GHG points, tracking action history, and enabling the leaderboard. We use **Supabase Auth** to implement sign up and log in with minimal effort. Supabase Auth provides a full authentication system (JWT-based sessions, secure password hashing, email verification, OAuth) that integrates directly with our Supabase database and Row Level Security policies.
+
+### Implementation Steps
+
+**Step 1: Supabase Project Setup**
+
+1. Create a free Supabase project at [supabase.com](https://supabase.com).
+2. From the project dashboard, copy the **Project URL** and **anon (public) API key** – these are needed to initialize the Supabase client in our React Native app.
+3. In the Supabase dashboard under **Authentication → Providers**, enable the desired sign-in methods:
+   - **Email/Password** (enabled by default) – users register with email and password.
+   - **Magic Link** (optional) – passwordless login via email link; great for a quick, frictionless experience.
+   - **OAuth Providers** (optional) – enable Google and/or GitHub OAuth for one-tap social sign-in. This requires adding OAuth credentials (client ID/secret) from the respective provider's developer console.
+
+**Step 2: Install Dependencies**
+
+Install the Supabase client library and a secure storage adapter for React Native sessions:
+
+```bash
+npx expo install @supabase/supabase-js @react-native-async-storage/async-storage
+```
+
+**Step 3: Initialize the Supabase Client**
+
+Create a `lib/supabase.ts` file to configure the Supabase client with session persistence:
+
+```typescript
+import { createClient } from '@supabase/supabase-js';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const supabaseUrl = 'https://YOUR_PROJECT_REF.supabase.co';
+const supabaseAnonKey = 'YOUR_ANON_KEY';
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    storage: AsyncStorage,
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false, // important for React Native (no browser URL)
+  },
+});
+```
+
+**Step 4: Build the Sign Up Screen**
+
+Create a themed sign-up screen (styled as "Join the Order of EcoMages"). The core logic:
+
+```typescript
+import { supabase } from '../lib/supabase';
+
+const handleSignUp = async (email: string, password: string, wizardName: string) => {
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { wizard_name: wizardName }, // stored in user metadata
+    },
+  });
+
+  if (error) {
+    Alert.alert('Spell Failed', error.message);
+    return;
+  }
+
+  // Optionally create a profile row in the 'profiles' table
+  if (data.user) {
+    await supabase.from('profiles').insert({
+      id: data.user.id,
+      wizard_name: wizardName,
+      total_points: 0,
+      level: 1,
+      title: 'Novice EcoMage',
+    });
+  }
+
+  Alert.alert('Welcome, Apprentice!', 'Check your email to verify your account.');
+};
+```
+
+The UI should include:
+- A text input for **Wizard Name** (display name)
+- A text input for **Email**
+- A secure text input for **Password**
+- A "Join the Order" (Sign Up) button styled as a magical parchment button
+- A link to navigate to the Log In screen ("Already an EcoMage? Log in")
+
+**Step 5: Build the Log In Screen**
+
+Create the login screen (styled as "Enter the Sanctum"). The core logic:
+
+```typescript
+const handleLogin = async (email: string, password: string) => {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error) {
+    Alert.alert('Access Denied', error.message);
+    return;
+  }
+
+  // Session is now active – navigate to home screen
+};
+```
+
+For **social OAuth login** (e.g., Google), use:
+
+```typescript
+const handleGoogleLogin = async () => {
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+  });
+  // This opens a browser for OAuth flow and redirects back to the app
+};
+```
+
+**Step 6: Session Management & Auth State Listener**
+
+In the app's root component (e.g., `App.tsx`), listen for auth state changes to conditionally render either the Auth screens or the main app:
+
+```typescript
+import { useEffect, useState } from 'react';
+import { Session } from '@supabase/supabase-js';
+import { supabase } from './lib/supabase';
+
+export default function App() {
+  const [session, setSession] = useState<Session | null>(null);
+
+  useEffect(() => {
+    // Check for existing session on app load
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    // Listen for auth state changes (login, logout, token refresh)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session);
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  return session ? <MainApp session={session} /> : <AuthScreens />;
+}
+```
+
+**Step 7: Log Out**
+
+Add a log-out button (styled as "Leave the Sanctum") in the user profile or settings screen:
+
+```typescript
+const handleLogout = async () => {
+  await supabase.auth.signOut();
+  // The onAuthStateChange listener will automatically update the UI
+};
+```
+
+**Step 8: Database Schema & Row Level Security (RLS)**
+
+Set up the database tables and security policies in the Supabase SQL Editor:
+
+```sql
+-- Profiles table (extends the auth.users table)
+CREATE TABLE profiles (
+  id UUID REFERENCES auth.users(id) PRIMARY KEY,
+  wizard_name TEXT NOT NULL,
+  total_points INTEGER DEFAULT 0,
+  level INTEGER DEFAULT 1,
+  title TEXT DEFAULT 'Novice EcoMage',
+  avatar_url TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Actions table (logs all eco-actions)
+CREATE TABLE actions (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) NOT NULL,
+  type TEXT NOT NULL CHECK (type IN ('recycle', 'energy', 'donate')),
+  details JSONB,
+  points_awarded INTEGER NOT NULL,
+  image_path TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable Row Level Security
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE actions ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies: users can only read/write their own data
+CREATE POLICY "Users can view their own profile"
+  ON profiles FOR SELECT USING (auth.uid() = id);
+
+CREATE POLICY "Users can update their own profile"
+  ON profiles FOR UPDATE USING (auth.uid() = id);
+
+CREATE POLICY "Users can insert their own profile"
+  ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
+
+CREATE POLICY "Users can view their own actions"
+  ON actions FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own actions"
+  ON actions FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Leaderboard: allow all authenticated users to see all profiles (read-only for leaderboard)
+CREATE POLICY "All users can view leaderboard data"
+  ON profiles FOR SELECT USING (auth.role() = 'authenticated');
+```
+
+**Step 9: Protect Storage Buckets**
+
+Configure a Supabase Storage bucket for user photos with auth-based access:
+
+1. In the Supabase dashboard, create a bucket called `photos` (set to private).
+2. Add a storage policy so users can only upload to their own folder:
+
+```sql
+-- Allow authenticated users to upload to their own folder
+CREATE POLICY "Users can upload their own photos"
+  ON storage.objects FOR INSERT
+  WITH CHECK (
+    bucket_id = 'photos'
+    AND auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+-- Allow users to view their own photos
+CREATE POLICY "Users can view their own photos"
+  ON storage.objects FOR SELECT
+  USING (
+    bucket_id = 'photos'
+    AND auth.uid()::text = (storage.foldername(name))[1]
+  );
+```
+
+Upload photos from the app like this:
+
+```typescript
+const uploadPhoto = async (uri: string, userId: string) => {
+  const fileName = `${userId}/${Date.now()}.jpg`;
+  const response = await fetch(uri);
+  const blob = await response.blob();
+
+  const { data, error } = await supabase.storage
+    .from('photos')
+    .upload(fileName, blob, { contentType: 'image/jpeg' });
+
+  return data?.path;
+};
+```
+
+**Step 10: Integrate Auth with Existing Features**
+
+Once auth is set up, integrate it into the existing spells:
+- **Recyclify Reveal:** After the user confirms recycling, log the action to the `actions` table with `user_id` from `session.user.id`, and increment `total_points` in the `profiles` table.
+- **WattSaver Charm:** Same pattern – log energy readings and award points tied to the authenticated user.
+- **Food Rescue Portal:** Log donations and points to the authenticated user's profile.
+- **Leaderboard:** Query the `profiles` table ordered by `total_points` DESC to display the community rankings.
+
+### Magical Theme for Auth Screens
+
+- The **Sign Up** screen is themed as a "Wizard Enrollment Scroll" – the background could be a parchment texture with the app's crest, and the form fields are styled as enchanted input fields with subtle glow effects.
+- The **Log In** screen is themed as "Entering the Sanctum" – perhaps a door-opening animation plays when credentials are accepted.
+- **Validation errors** are styled as "spell failures" with playful messages (e.g., "Your password incantation must be at least 6 characters").
+- After successful sign-up, a brief onboarding animation welcomes the user as a "new apprentice" in the Order of EcoMages.
 
 ## Pitch Script and Demo Flow
 
@@ -132,7 +401,7 @@ To effectively pitch EcoWizard to judges, we will deliver a concise, story-drive
 
 2. **Feature Demo – Recyclify Reveal:** "Let's show you a spell. Here I have a plastic bottle – normally trash. But watch as I use EcoWizard to cast the Recyclify Reveal spell!" (We navigate to the recycle feature in the app. The phone camera opens; we point it at the plastic bottle's recycling symbol.) "The app instantly identifies the item… and voilà!" (On screen, the app displays: "Plastic Bottle – Recyclable! Properly recycling this saves ~0.05 kg CO₂. +5 points." with a celebratory animation.) "It's like magic – the app recognized the bottle and even calculated how much greenhouse gas we save by recycling it. Now I'll confirm the spell…" (We tap 'Confirm Recycle' and maybe show a second photo of the bottle in a recycle bin.) "Spell cast! Those 5 points were added to my score. Think of these as climate 'experience points' – I'm earning my wizard levels by helping the planet."
 
-   – (We explain briefly the tech behind this as part of the pitch: "Behind the scenes, our app used image recognition to read the recycling code [alyssax.substack.com] and a knowledge base to fetch recycling info [plasticstoday.com]. We even store a proof photo to keep users honest. All of this is built with React Native and a Node.js backend using DigitalOcean – so it works fast and scales to many users." While explaining, we can flash a quick architecture graphic or the DO logo to hint at our implementation, but keep focus on the demo.)
+   – (We explain briefly the tech behind this as part of the pitch: "Behind the scenes, our app used image recognition to read the recycling code [alyssax.substack.com] and a knowledge base to fetch recycling info [plasticstoday.com]. We even store a proof photo to keep users honest. All of this is built with React Native and Supabase – handling auth, database, storage, and serverless functions in one platform – so it works fast and scales to many users." While explaining, we can flash a quick architecture graphic or the Supabase logo to hint at our implementation, but keep focus on the demo.)
 
 3. **Feature Demo – WattSaver Charm:** "Next, let's try an energy spell. This one helps me track and reduce my home energy use." (Navigate in app to Energy feature.) "Here I can enter my electricity usage for the month. My bill says 300 kWh – not great, so I'll cast the WattSaver Charm to see my impact." (Enter 300 and submit. The app shows an output: "300 kWh = 135 kg CO₂ emitted. Let's aim lower next time! (No points this time, try reducing usage.)" perhaps.) "It looks like I used enough energy to emit 135 kilos of CO₂ – that's like burning through a small forest's monthly CO₂ absorption. The app encourages me to save more. If I drop my usage, I'll earn points. For example, if I enter 250 kWh for next month…" (We simulate quickly entering a lower number.) "…I'd get maybe 10 points for that improvement. It's a simple tracker, but by giving it a magical spin and reward, I'm more motivated to conserve power." (We could mention: "We've based these calculations on real emissions data (≈0.82 lbs CO₂ per kWh [epa.gov]), so users learn as they play.")
 
@@ -140,7 +409,7 @@ To effectively pitch EcoWizard to judges, we will deliver a concise, story-drive
 
 5. **Community & Gamification:** (Now we show the profile/leaderboard screen.) "All these spells earn you GHG points. In the app, you can see your total points – I've got, say, 50 points now, which makes me a Level 2 Eco-Wizard." (On screen, show a profile with points and a title like "Level 2 – Climate Conjurer"). "We also have a friendly competition – you can see the community leaderboard." (Show a sample leaderboard with fictional names or perhaps team names if we made houses.) "People can compete or collaborate. For example, UGA could run a challenge to see which dorm diverts the most waste or saves the most energy – using our app to track it. We think this gamified approach can really drive engagement in sustainability."
 
-6. **Technical Note (for judges):** "From a technology standpoint, EcoWizard is built to be feasible and scalable. We used React Native for the frontend, and integrated DigitalOcean's cloud services for the heavy lifting – object storage for images, App Platform to host our backend AI logic, and a managed database for all the user data – which means it's secure and can grow to thousands of users easily. Even in just 48 hours, we got a working prototype, thanks to these tools and some creative magic." (This part shows we met the sponsor tech challenge; we might briefly show a DO dashboard or mention how quick it was to deploy.)
+6. **Technical Note (for judges):** "From a technology standpoint, EcoWizard is built to be feasible and scalable. We used React Native for the frontend, and integrated Supabase as our backend platform – providing user authentication, a PostgreSQL database, file storage for images, and Edge Functions for our AI logic – which means it's secure and can grow to thousands of users easily. Even in just 48 hours, we got a working prototype, thanks to Supabase's unified developer experience and some creative magic." (This part shows a production-ready architecture; we might briefly show the Supabase dashboard or mention how quick it was to set up.)
 
 7. **Conclusion (Vision):** "In conclusion, EcoWizard turns climate action into a magical adventure. By incentivizing recycling, energy saving, and food donations, we empower individuals to make a difference daily. The magic theme isn't just for fun – it lowers the barrier for participation and education. Our community benefits from cleaner streets, less waste, and more solidarity. We believe EcoWizard can ignite the spark in many more 'wizard' citizens to protect our planet. Thank you!" (We end with a final slide of our app logo and tagline: "EcoWizard – Cast Spells. Save the World.")
 
@@ -152,7 +421,7 @@ EcoWizard is a hackathon project that finds the intersection of whimsy and impac
 
 Crucially, every design decision was filtered through: Does this help the community or the environment clearly? If yes, we kept it, and if not, we cut it. For example, an AI assistant chat could be cool, but we realized it might distract from the core loop – so we minimized that idea in favor of straightforward spells. We emphasized clear impact (CO₂ numbers, etc.) in the UI so that even in a fanciful theme, the utility is never lost on the user or the judges.
 
-By using DigitalOcean's platform, we demonstrated how sponsor services can empower quick development of a community-oriented app – an app that could realistically be taken beyond the hackathon with its cloud-ready architecture. We also laid out a narrative that appeals to emotion (helping others, being a hero) and fun (casting spells, earning points), which can drive adoption.
+By using Supabase as our backend platform, we demonstrated how a modern open-source BaaS (Backend-as-a-Service) can empower quick development of a community-oriented app – an app that could realistically be taken beyond the hackathon with its production-ready architecture. We also laid out a narrative that appeals to emotion (helping others, being a hero) and fun (casting spells, earning points), which can drive adoption.
 
 In essence, EcoWizard is about making the fight against climate change feel attainable and magical for everyone. With one scan at a time, one habit at a time, and one shared challenge at a time, we turn individual actions into a collective spell of positive change in our community. We believe this approach can captivate users and inspire real-world impact, which is exactly the outcome a hackathon project should strive for.
 
@@ -166,10 +435,14 @@ In essence, EcoWizard is about making the fight against climate change feel atta
   https://alyssax.substack.com/p/we-built-an-ai-recycling-app-in-a
 - AI-powered App Turns Smartphone Camera into Remarkable Recycling Resource
   https://www.plasticstoday.com/packaging/ai-powered-app-turns-smartphone-camera-into-remarkable-recycling-resource
-- DigitalOcean App Platform | Build, Deploy, and Scale Apps with Ease
-  https://www.digitalocean.com/products/app-platform
-- DigitalOcean Spaces: Pros/Cons and how to use it with JavaScript | by José …
-  https://medium.com/dailyjs/digital-ocean-spaces-pros-cons-and-how-to-use-it-with-javascript-1802559ce2bd
+- Supabase Documentation | The Open Source Firebase Alternative
+  https://supabase.com/docs
+- Supabase Auth | Authentication and Authorization
+  https://supabase.com/docs/guides/auth
+- Supabase Edge Functions | Serverless Functions
+  https://supabase.com/docs/guides/functions
+- Supabase Storage | File Storage
+  https://supabase.com/docs/guides/storage
 - AI-powered App Turns Smartphone Camera into Remarkable Recycling Resource
   https://www.plasticstoday.com/packaging/ai-powered-app-turns-smartphone-camera-into-remarkable-recycling-resource
 - Greenhouse Gas Equivalencies Calculator
@@ -204,4 +477,4 @@ In essence, EcoWizard is about making the fight against climate change feel atta
 
 ### All Sources
 
-epa · alyssax.substack · plasticstoday · digitalocean · medium · feedingamerica · earth · ugahacks-8.devpost
+epa · alyssax.substack · plasticstoday · supabase · medium · feedingamerica · earth · ugahacks-8.devpost
