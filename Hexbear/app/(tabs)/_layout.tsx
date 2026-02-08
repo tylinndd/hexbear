@@ -1,35 +1,119 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { MagicColors } from '@/constants/theme';
+
+function TabIcon({ icon, label, focused }: { icon: string; label: string; focused: boolean }) {
+  return (
+    <View style={styles.tabIconContainer}>
+      <Text style={[styles.tabIcon, focused && styles.tabIconActive]}>
+        {icon}
+      </Text>
+      <Text
+        style={[
+          styles.tabLabel,
+          focused ? styles.tabLabelActive : styles.tabLabelInactive,
+        ]}
+      >
+        {label}
+      </Text>
+    </View>
+  );
+}
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
         tabBarButton: HapticTab,
-      }}>
+        tabBarStyle: styles.tabBar,
+        tabBarShowLabel: false,
+        tabBarActiveTintColor: MagicColors.gold,
+        tabBarInactiveTintColor: MagicColors.textMuted,
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: 'Spellbook',
+          tabBarIcon: ({ focused }) => (
+            <TabIcon icon="📖" label="Spellbook" focused={focused} />
+          ),
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="recycle"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: 'Recycle',
+          tabBarIcon: ({ focused }) => (
+            <TabIcon icon="♻️" label="Recycle" focused={focused} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="energy"
+        options={{
+          title: 'Energy',
+          tabBarIcon: ({ focused }) => (
+            <TabIcon icon="⚡" label="Energy" focused={focused} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="donate"
+        options={{
+          title: 'Donate',
+          tabBarIcon: ({ focused }) => (
+            <TabIcon icon="🍞" label="Donate" focused={focused} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ focused }) => (
+            <TabIcon icon="🧙" label="Profile" focused={focused} />
+          ),
         }}
       />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBar: {
+    backgroundColor: MagicColors.darkSurface,
+    borderTopColor: MagicColors.border,
+    borderTopWidth: 1,
+    height: 80,
+    paddingTop: 8,
+    paddingBottom: 16,
+  },
+  tabIconContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+  },
+  tabIcon: {
+    fontSize: 22,
+    opacity: 0.6,
+  },
+  tabIconActive: {
+    opacity: 1,
+    fontSize: 24,
+  },
+  tabLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  tabLabelActive: {
+    color: MagicColors.gold,
+  },
+  tabLabelInactive: {
+    color: MagicColors.textMuted,
+  },
+});
