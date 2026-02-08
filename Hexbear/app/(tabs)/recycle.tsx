@@ -15,25 +15,27 @@ import { MagicColors, Fonts, FontWeights, FontSizes } from '@/constants/theme';
 import { MagicButton } from '@/components/MagicButton';
 import { SuccessModal } from '@/components/SuccessModal';
 import { useAuth } from '@/contexts/AuthContext';
-import { GOOGLE_VISION_API_KEY } from '@/lib/supabase';
+import { GOOGLE_VISION_API_KEY, supabase } from '@/lib/supabase';
 import {
   identifyMaterial,
   RecyclingMaterial,
 } from '@/constants/recycling-data';
 import { Ionicons } from '@expo/vector-icons';
 
-type SpellStage = 'intro' | 'camera' | 'analyzing' | 'result';
+type SpellStage = 'intro' | 'camera' | 'analyzing' | 'result' | 'proof' | 'uploading';
 
 export default function RecycleScreen() {
   const [stage, setStage] = useState<SpellStage>('intro');
   const [permission, requestPermission] = useCameraPermissions();
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [photoBase64, setPhotoBase64] = useState<string | null>(null);
+  const [proofPhotoUri, setProofPhotoUri] = useState<string | null>(null);
+  const [proofPhotoBase64, setProofPhotoBase64] = useState<string | null>(null);
   const [material, setMaterial] = useState<RecyclingMaterial | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const cameraRef = useRef<CameraView>(null);
-  const { logAction } = useAuth();
+  const { logAction, user } = useAuth();
 
   const startScan = async () => {
     if (!permission?.granted) {
@@ -87,7 +89,8 @@ export default function RecycleScreen() {
               {
                 image: { content: base64 },
                 features: [
-                  { type: 'LABEL_DETECTION', maxResults: 15 },
+                  { type: 'LABEL_DETECTION', maxResults: 20 },
+                  { type: 'OBJECT_LOCALIZATION', maxResults: 10 },
                   { type: 'TEXT_DETECTION', maxResults: 5 },
                 ],
               },
@@ -98,19 +101,51 @@ export default function RecycleScreen() {
 
       const data = await response.json();
 
+      // Check for API-level errors (invalid key, quota exceeded, etc.)
+      if (data.error) {
+        console.log('Vision API error response:', data.error);
+        Alert.alert(
+          'Analysis Failed',
+          `Vision API error: ${data.error.message || 'Unknown error'}. Check your API key and billing.`
+        );
+        setAnalyzing(false);
+        setStage('result');
+        return;
+      }
+
       if (data.responses && data.responses[0]) {
         const result = data.responses[0];
+
+        // Check for per-request errors
+        if (result.error) {
+          console.log('Vision API request error:', result.error);
+          Alert.alert(
+            'Analysis Failed',
+            `Vision API: ${result.error.message || 'Could not analyze image.'}`
+          );
+          setAnalyzing(false);
+          setStage('result');
+          return;
+        }
+
+        // Collect labels from both labelAnnotations and localizedObjectAnnotations
         const labels = (result.labelAnnotations || []).map(
           (l: { description: string }) => l.description
         );
+        const objectLabels = (result.localizedObjectAnnotations || []).map(
+          (o: { name: string }) => o.name
+        );
+        const allLabels = [...labels, ...objectLabels];
+
         const textAnnotations = (result.textAnnotations || []).map(
           (t: { description: string }) => t.description
         );
 
         console.log('Vision API labels:', labels);
+        console.log('Vision API objects:', objectLabels);
         console.log('Vision API text:', textAnnotations);
 
-        const identified = identifyMaterial(labels, textAnnotations);
+        const identified = identifyMaterial(allLabels, textAnnotations);
         setMaterial(identified);
       } else {
         setMaterial(null);
@@ -119,7 +154,7 @@ export default function RecycleScreen() {
       console.log('Vision API error:', err);
       Alert.alert(
         'Analysis Failed',
-        'The vision spell encountered an issue. Please try again.'
+        'The vision spell encountered a network issue. Please check your connection and try again.'
       );
     }
 
@@ -127,32 +162,126 @@ export default function RecycleScreen() {
     setStage('result');
   };
 
-  const confirmRecycle = async () => {
+  const confirmRecycle = () => {
     if (!material) return;
+    // Transition to proof camera so user can photograph item in recycling bin
+    setStage('proof');
+  };
 
+  const takeProofPhoto = async () => {
+    if (!cameraRef.current) return;
+
+    try {
+      const photo = await cameraRef.current.takePictureAsync({
+        base64: true,
+        quality: 0.7,
+      });
+
+      if (photo) {
+        setProofPhotoUri(photo.uri);
+        setProofPhotoBase64(photo.base64 || null);
+        setStage('uploading');
+        uploadAndComplete(photo.base64 || '');
+      }
+    } catch (err) {
+      console.log('Proof photo capture error:', err);
+      Alert.alert('Spell Misfire', 'Failed to capture proof photo. Try again.');
+    }
+  };
+
+  const uploadAndComplete = async (proofBase64: string) => {
+    if (!material || !user) return;
+
+    let scanImagePath: string | null = null;
+    let proofImagePath: string | null = null;
+
+    try {
+      const timestamp = Date.now();
+      const uniqueId = `${timestamp}_${Math.random().toString(36).substring(2, 10)}`;
+
+      // Upload the scan photo
+      if (photoBase64) {
+        const scanFileName = `${user.id}/scan_${timestamp}_${uniqueId}.jpg`;
+        const scanBlob = base64ToBlob(photoBase64, 'image/jpeg');
+
+        const { error: scanError } = await supabase.storage
+          .from('photos')
+          .upload(scanFileName, scanBlob, {
+            contentType: 'image/jpeg',
+            upsert: false,
+          });
+
+        if (scanError) {
+          console.log('Scan photo upload error:', scanError);
+        } else {
+          scanImagePath = scanFileName;
+        }
+      }
+
+      // Upload the proof photo
+      if (proofBase64) {
+        const proofFileName = `${user.id}/proof_${timestamp}_${uniqueId}.jpg`;
+        const proofBlob = base64ToBlob(proofBase64, 'image/jpeg');
+
+        const { error: proofError } = await supabase.storage
+          .from('photos')
+          .upload(proofFileName, proofBlob, {
+            contentType: 'image/jpeg',
+            upsert: false,
+          });
+
+        if (proofError) {
+          console.log('Proof photo upload error:', proofError);
+        } else {
+          proofImagePath = proofFileName;
+        }
+      }
+    } catch (err) {
+      console.log('Photo upload failed (storage may not be configured):', err);
+    }
+
+    // Log the action with image paths (points are awarded even if upload fails)
     await logAction(
       'recycle',
       {
         material_name: material.name,
         material_type: material.type,
         co2_saved: material.co2SavedKg,
+        scan_image: scanImagePath,
+        proof_image: proofImagePath,
       },
-      material.points
+      material.points,
+      proofImagePath || scanImagePath || undefined
     );
 
     setShowSuccess(true);
+  };
+
+  /** Convert a base64 string to a Blob for Supabase Storage upload */
+  const base64ToBlob = (base64: string, contentType: string): Blob => {
+    const byteCharacters = atob(base64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    return new Blob([byteArray], { type: contentType });
   };
 
   const resetSpell = () => {
     setStage('intro');
     setPhotoUri(null);
     setPhotoBase64(null);
+    setProofPhotoUri(null);
+    setProofPhotoBase64(null);
     setMaterial(null);
     setShowSuccess(false);
   };
 
+  const isCamera = stage === 'camera' || stage === 'proof';
+
   // Camera permission not yet determined
-  if (stage === 'camera' && !permission?.granted) {
+  if (isCamera && !permission?.granted) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centeredContent}>
@@ -176,8 +305,8 @@ export default function RecycleScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {stage === 'camera' ? (
-        // Camera View
+      {isCamera ? (
+        // Camera View (scan or proof)
         <View style={styles.cameraContainer}>
           <CameraView
             ref={cameraRef}
@@ -188,34 +317,58 @@ export default function RecycleScreen() {
             <View style={styles.cameraOverlay}>
               <View style={styles.scanHeader}>
                 <View style={styles.scanTitleRow}>
-                  <Ionicons name="leaf" size={24} color="#fff" />
-                  <Text style={styles.scanTitle}>Recyclify Reveal</Text>
+                  <Ionicons
+                    name={stage === 'proof' ? 'checkmark-circle' : 'leaf'}
+                    size={24}
+                    color="#fff"
+                  />
+                  <Text style={styles.scanTitle}>
+                    {stage === 'proof' ? 'Proof of Recycling' : 'Recyclify Reveal'}
+                  </Text>
                 </View>
                 <Text style={styles.scanSubtitle}>
-                  Center the item or its recycling symbol
+                  {stage === 'proof'
+                    ? 'Photograph the item in the recycling bin'
+                    : 'Center the item or its recycling symbol'}
                 </Text>
+                {stage === 'proof' && (
+                  <View style={styles.proofBadge}>
+                    <Ionicons name="camera" size={14} color={MagicColors.recycleGreen} />
+                    <Text style={styles.proofBadgeText}>
+                      Show your recycled {material?.name || 'item'}
+                    </Text>
+                  </View>
+                )}
               </View>
 
               {/* Targeting reticle */}
               <View style={styles.reticle}>
-                <View style={[styles.corner, styles.cornerTL]} />
-                <View style={[styles.corner, styles.cornerTR]} />
-                <View style={[styles.corner, styles.cornerBL]} />
-                <View style={[styles.corner, styles.cornerBR]} />
+                <View style={[styles.corner, styles.cornerTL, stage === 'proof' && styles.cornerProofColor]} />
+                <View style={[styles.corner, styles.cornerTR, stage === 'proof' && styles.cornerProofColor]} />
+                <View style={[styles.corner, styles.cornerBL, stage === 'proof' && styles.cornerProofColor]} />
+                <View style={[styles.corner, styles.cornerBR, stage === 'proof' && styles.cornerProofColor]} />
               </View>
 
               <View style={styles.cameraActions}>
                 <MagicButton
-                  title="Cancel"
+                  title={stage === 'proof' ? 'Skip' : 'Cancel'}
                   variant="outline"
                   size="small"
-                  onPress={() => setStage('intro')}
+                  onPress={() => {
+                    if (stage === 'proof') {
+                      // Skip proof — still award points but without proof photo
+                      setStage('uploading');
+                      uploadAndComplete('');
+                    } else {
+                      setStage('intro');
+                    }
+                  }}
                 />
                 <MagicButton
-                  title="Cast Spell"
-                  iconName="sparkles"
+                  title={stage === 'proof' ? 'Take Proof Photo' : 'Cast Spell'}
+                  iconName={stage === 'proof' ? 'camera' : 'sparkles'}
                   size="large"
-                  onPress={takePhoto}
+                  onPress={stage === 'proof' ? takeProofPhoto : takePhoto}
                 />
                 <View style={{ width: 80 }} />
               </View>
@@ -320,6 +473,40 @@ export default function RecycleScreen() {
               </View>
               <Text style={styles.analyzingSubtext}>
                 Analyzing the magical essence of this item
+              </Text>
+            </View>
+          )}
+
+          {stage === 'uploading' && (
+            <View style={styles.analyzingContainer}>
+              {/* Show both photos side by side */}
+              <View style={styles.proofPhotosRow}>
+                {photoUri && (
+                  <View style={styles.proofPhotoWrapper}>
+                    <Text style={styles.proofPhotoLabel}>Scan</Text>
+                    <Image source={{ uri: photoUri }} style={styles.proofPhotoSmall} />
+                  </View>
+                )}
+                {proofPhotoUri && (
+                  <View style={styles.proofPhotoWrapper}>
+                    <Text style={styles.proofPhotoLabel}>Proof</Text>
+                    <Image source={{ uri: proofPhotoUri }} style={styles.proofPhotoSmall} />
+                  </View>
+                )}
+              </View>
+              <ActivityIndicator
+                size="large"
+                color={MagicColors.recycleGreen}
+                style={{ marginTop: 24 }}
+              />
+              <View style={styles.analyzingTextRow}>
+                <Ionicons name="cloud-upload" size={20} color={MagicColors.recycleGreen} />
+                <Text style={styles.analyzingText}>
+                  Completing Spell...
+                </Text>
+              </View>
+              <Text style={styles.analyzingSubtext}>
+                Uploading proof and awarding your GHG points
               </Text>
             </View>
           )}
@@ -814,6 +1001,55 @@ const styles = StyleSheet.create({
   resultActions: {
     flexDirection: 'row',
     gap: 8,
+  },
+
+  // Proof camera
+  proofBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 10,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  proofBadgeText: {
+    fontSize: 13,
+    color: '#fff',
+    fontFamily: Fonts.body,
+    fontWeight: FontWeights.semibold,
+  },
+  cornerProofColor: {
+    borderColor: MagicColors.recycleGreen,
+  },
+
+  // Uploading / proof photos
+  proofPhotosRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 12,
+    marginBottom: 4,
+  },
+  proofPhotoWrapper: {
+    alignItems: 'center',
+  },
+  proofPhotoLabel: {
+    fontSize: 12,
+    fontWeight: FontWeights.semibold,
+    color: MagicColors.textSecondary,
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    fontFamily: Fonts.body,
+  },
+  proofPhotoSmall: {
+    width: 150,
+    height: 150,
+    borderRadius: 16,
+    backgroundColor: MagicColors.offWhiteSolid,
+    borderWidth: 2,
+    borderColor: MagicColors.borderLight,
   },
 
   // No result

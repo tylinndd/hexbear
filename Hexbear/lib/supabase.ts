@@ -39,4 +39,4 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 });
 
 // Google Cloud Vision API key for recyclability analysis
-export const GOOGLE_VISION_API_KEY = 'AIzaSyDXd6SAakzV7cJMf-pAG8H9XAPC3fV-zxY';
+export const GOOGLE_VISION_API_KEY = 'AIzaSyDzIM-Amd0kyvGiG2mKdvQUlocwSYRacsM';

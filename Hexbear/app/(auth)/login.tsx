@@ -111,7 +111,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: MagicColors.parchment,
+    backgroundColor: '#FFFFFF',
   },
   scrollContent: {
     flexGrow: 1,
@@ -126,23 +126,29 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     marginBottom: 10,
+    alignSelf: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 50,
   },
   lottieAnimation: {
     width: 200,
     height: 200,
   },
   appName: {
-    fontSize: 36,
+    fontSize: 52,
     fontWeight: '800',
     color: MagicColors.gold,
     letterSpacing: 2,
     marginTop: 16,
+    fontFamily: Platform.OS === 'ios' ? 'Baskerville-Bold' : 'serif',
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 19,
     color: '#7ED957',
     marginTop: 6,
     fontWeight: '600',
+    fontFamily: Platform.OS === 'ios' ? 'Baskerville' : 'serif',
   },
   form: {
     gap: 16,
@@ -157,14 +163,14 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   input: {
-    backgroundColor: MagicColors.darkSurface,
+    backgroundColor: '#F9F9F9',
     borderRadius: 14,
     paddingHorizontal: 18,
     paddingVertical: 16,
     fontSize: 16,
     color: MagicColors.textPrimary,
     borderWidth: 1,
-    borderColor: MagicColors.border,
+    borderColor: '#E5E7EB',
   },
   footer: {
     flexDirection: 'row',

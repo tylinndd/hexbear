@@ -140,7 +140,7 @@ export default function SignUpScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: MagicColors.parchment,
+    backgroundColor: '#FFFFFF',
   },
   scrollContent: {
     flexGrow: 1,
@@ -186,14 +186,14 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   input: {
-    backgroundColor: MagicColors.darkSurface,
+    backgroundColor: '#F9F9F9',
     borderRadius: 14,
     paddingHorizontal: 18,
     paddingVertical: 16,
     fontSize: 16,
     color: MagicColors.textPrimary,
     borderWidth: 1,
-    borderColor: MagicColors.border,
+    borderColor: '#E5E7EB',
   },
   inputHint: {
     fontSize: 12,

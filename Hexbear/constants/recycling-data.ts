@@ -177,85 +177,138 @@ export const MATERIAL_TYPES: Record<string, RecyclingMaterial> = {
   },
 };
 
-// Keywords from Vision API labels mapped to material types
-export const LABEL_TO_MATERIAL: Record<string, string> = {
-  // Containers
-  bottle: 'bottle',
-  'plastic bottle': 'bottle',
-  'water bottle': 'bottle',
-  'pet bottle': 'bottle',
-  'beverage can': 'aluminum',
-  'aluminum can': 'aluminum',
-  'tin can': 'can',
-  can: 'can',
-  jar: 'glass',
-  'glass bottle': 'glass',
+/**
+ * Keywords from Vision API labels mapped to material types.
+ * Sorted longest-first so more-specific matches win.
+ * Each entry has a weight: higher weight = more confident match.
+ */
+export const LABEL_RULES: { keyword: string; material: string; weight: number }[] = [
+  // High-confidence specific labels (weight 3)
+  { keyword: 'plastic bottle', material: 'bottle', weight: 3 },
+  { keyword: 'water bottle', material: 'bottle', weight: 3 },
+  { keyword: 'pet bottle', material: 'bottle', weight: 3 },
+  { keyword: 'beverage can', material: 'aluminum', weight: 3 },
+  { keyword: 'aluminum can', material: 'aluminum', weight: 3 },
+  { keyword: 'aluminium can', material: 'aluminum', weight: 3 },
+  { keyword: 'tin can', material: 'can', weight: 3 },
+  { keyword: 'glass bottle', material: 'glass', weight: 3 },
+  { keyword: 'glass jar', material: 'glass', weight: 3 },
+  { keyword: 'cardboard box', material: 'cardboard', weight: 3 },
 
-  // Materials
-  aluminum: 'aluminum',
-  aluminium: 'aluminum',
-  glass: 'glass',
-  paper: 'paper',
-  cardboard: 'cardboard',
-  newspaper: 'paper',
-  magazine: 'paper',
+  // Medium-confidence material labels (weight 2)
+  { keyword: 'bottle', material: 'bottle', weight: 2 },
+  { keyword: 'aluminum', material: 'aluminum', weight: 2 },
+  { keyword: 'aluminium', material: 'aluminum', weight: 2 },
+  { keyword: 'glass', material: 'glass', weight: 2 },
+  { keyword: 'cardboard', material: 'cardboard', weight: 2 },
+  { keyword: 'newspaper', material: 'paper', weight: 2 },
+  { keyword: 'magazine', material: 'paper', weight: 2 },
+  { keyword: 'paper', material: 'paper', weight: 2 },
+  { keyword: 'can', material: 'can', weight: 2 },
+  { keyword: 'jar', material: 'glass', weight: 2 },
+  { keyword: 'carton', material: 'cardboard', weight: 2 },
 
-  // Packaging
-  packaging: 'cardboard',
-  box: 'cardboard',
-  'cardboard box': 'cardboard',
-  carton: 'cardboard',
+  // Lower-confidence generic labels (weight 1)
+  { keyword: 'plastic', material: 'bottle', weight: 1 },
+  { keyword: 'polystyrene', material: 'bottle', weight: 1 },
+  { keyword: 'styrofoam', material: 'bottle', weight: 1 },
+  { keyword: 'box', material: 'cardboard', weight: 1 },
+];
 
-  // Plastics
-  plastic: 'bottle',
-  polystyrene: 'bottle',
-  styrofoam: 'bottle',
+/**
+ * Known recycling-code abbreviations found in OCR text.
+ * These are the resin identification codes printed on products
+ * (e.g. "PETE", "HDPE") and are a strong signal for plastic type.
+ */
+const RESIN_CODE_KEYWORDS: Record<string, string> = {
+  pete: '1',
+  'pet': '1',   // common abbreviation on bottles
+  hdpe: '2',
+  pvc: '3',
+  'v': '3',
+  ldpe: '4',
+  pp: '5',
+  ps: '6',
 };
 
 /**
- * Attempt to identify a material from Google Vision API labels
+ * Attempt to identify a material from Google Vision API labels and text.
+ *
+ * Strategy:
+ * 1. Look for resin-identification abbreviations (PETE, HDPE, etc.) in OCR text — very reliable.
+ * 2. Look for an isolated recycling code digit (a standalone 1-7 not embedded in longer numbers).
+ * 3. Score all Vision labels against known material keywords and pick the best match.
  */
 export function identifyMaterial(
   labels: string[],
   textAnnotations: string[]
 ): RecyclingMaterial | null {
-  // First, check for recycling code numbers in text
+  // ──────────────────────────────────────────
+  // 1. Check OCR text for resin abbreviations (most reliable signal)
+  // ──────────────────────────────────────────
   for (const text of textAnnotations) {
-    const codeMatch = text.match(/[1-7]/);
-    if (codeMatch) {
-      const code = codeMatch[0];
-      if (PLASTIC_CODES[code]) {
-        return PLASTIC_CODES[code];
+    const words = text.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/);
+    for (const word of words) {
+      if (RESIN_CODE_KEYWORDS[word]) {
+        return PLASTIC_CODES[RESIN_CODE_KEYWORDS[word]];
       }
     }
   }
 
-  // Then, check labels against known material types
+  // ──────────────────────────────────────────
+  // 2. Check for standalone recycling code digits (1-7).
+  //    Only match a digit that appears on its own or inside a recycling-symbol
+  //    context — NOT digits embedded in dates, prices, addresses, etc.
+  //    A "standalone" digit is one surrounded by non-digit characters (or string boundaries).
+  // ──────────────────────────────────────────
+  for (const text of textAnnotations) {
+    // Match a single digit 1-7 that is NOT adjacent to other digits
+    const standaloneDigits = text.match(/(?<!\d)[1-7](?!\d)/g);
+    if (standaloneDigits) {
+      // Only trust this if the text annotation itself is very short
+      // (recycling symbols usually produce short OCR snippets like "1", "2 HDPE", etc.)
+      const trimmed = text.trim();
+      if (trimmed.length <= 6) {
+        const code = standaloneDigits[0];
+        if (PLASTIC_CODES[code]) {
+          return PLASTIC_CODES[code];
+        }
+      }
+    }
+  }
+
+  // ──────────────────────────────────────────
+  // 3. Score Vision labels against known material keywords
+  //    Pick the match with the highest cumulative weight.
+  // ──────────────────────────────────────────
   const normalizedLabels = labels.map((l) => l.toLowerCase());
+  const scores: Record<string, number> = {};
+
   for (const label of normalizedLabels) {
-    // Direct match
-    if (LABEL_TO_MATERIAL[label]) {
-      return MATERIAL_TYPES[LABEL_TO_MATERIAL[label]];
-    }
-    // Partial match
-    for (const [keyword, materialKey] of Object.entries(LABEL_TO_MATERIAL)) {
-      if (label.includes(keyword) || keyword.includes(label)) {
-        return MATERIAL_TYPES[materialKey];
+    for (const rule of LABEL_RULES) {
+      // Only match if the label contains the keyword (one direction only)
+      if (label.includes(rule.keyword)) {
+        scores[rule.material] = (scores[rule.material] || 0) + rule.weight;
       }
     }
   }
 
-  // Default: if we detect any "recyclable" looking item
-  for (const label of normalizedLabels) {
-    if (
-      label.includes('container') ||
-      label.includes('packaging') ||
-      label.includes('beverage') ||
-      label.includes('drink')
-    ) {
-      return MATERIAL_TYPES['bottle'];
+  // Find the material with the highest score
+  let bestMaterial: string | null = null;
+  let bestScore = 0;
+  for (const [mat, score] of Object.entries(scores)) {
+    if (score > bestScore) {
+      bestScore = score;
+      bestMaterial = mat;
     }
   }
 
+  if (bestMaterial && bestScore >= 2 && MATERIAL_TYPES[bestMaterial]) {
+    return MATERIAL_TYPES[bestMaterial];
+  }
+
+  // ──────────────────────────────────────────
+  // 4. No confident match found
+  // ──────────────────────────────────────────
   return null;
 }
