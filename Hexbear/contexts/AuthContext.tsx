@@ -150,6 +150,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
+      // If Supabase returned a session, we're already signed in (email confirm disabled).
+      // If no session (email confirm enabled), auto-sign in immediately.
+      if (!data.session) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (signInError) {
+          console.log('Auto-sign-in after signup failed:', signInError.message);
+        }
+      }
+
       return { error: null };
     } catch (err: unknown) {
       return { error: (err as Error).message };

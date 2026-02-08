@@ -12,6 +12,7 @@ import {
 import { Link } from 'expo-router';
 import { MagicColors } from '@/constants/theme';
 import { MagicButton } from '@/components/MagicButton';
+import { LogoMark } from '@/components/LogoMark';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function LoginScreen() {
@@ -22,7 +23,7 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Spell Incomplete', 'Please enter both email and password incantation.');
+      Alert.alert('Spell Incomplete', 'Please enter both email and password.');
       return;
     }
 
@@ -44,20 +45,17 @@ export default function LoginScreen() {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Header */}
+        {/* Logo + Title */}
         <View style={styles.header}>
-          <Text style={styles.appIcon}>{'🐻'}</Text>
+          <LogoMark size="large" />
           <Text style={styles.appName}>Hexbear</Text>
-          <Text style={styles.subtitle}>Enter the Sanctum</Text>
-          <Text style={styles.description}>
-            Welcome back, wizard. Cast your credentials to resume your quest.
-          </Text>
+          <Text style={styles.subtitle}>Cast spells. Save the planet.</Text>
         </View>
 
         {/* Form */}
         <View style={styles.form}>
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>{'📧'}  Email</Text>
+            <Text style={styles.inputLabel}>Email</Text>
             <TextInput
               style={styles.input}
               placeholder="your.email@example.com"
@@ -71,10 +69,10 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>{'🔐'}  Password Incantation</Text>
+            <Text style={styles.inputLabel}>Password</Text>
             <TextInput
               style={styles.input}
-              placeholder="Enter your secret spell..."
+              placeholder="Enter your password..."
               placeholderTextColor={MagicColors.textMuted}
               value={password}
               onChangeText={setPassword}
@@ -84,7 +82,6 @@ export default function LoginScreen() {
 
           <MagicButton
             title="Enter the Sanctum"
-            icon="🏰"
             onPress={handleLogin}
             loading={loading}
             size="large"
@@ -107,7 +104,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: MagicColors.darkBg,
+    backgroundColor: '#0B1F2A',
   },
   scrollContent: {
     flexGrow: 1,
@@ -118,28 +115,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 40,
   },
-  appIcon: {
-    fontSize: 64,
-    marginBottom: 12,
-  },
   appName: {
     fontSize: 36,
     fontWeight: '800',
     color: MagicColors.gold,
     letterSpacing: 2,
+    marginTop: 16,
   },
   subtitle: {
-    fontSize: 18,
-    color: MagicColors.emerald,
-    marginTop: 8,
+    fontSize: 16,
+    color: '#7ED957',
+    marginTop: 6,
     fontWeight: '600',
-  },
-  description: {
-    fontSize: 14,
-    color: MagicColors.textSecondary,
-    textAlign: 'center',
-    marginTop: 8,
-    lineHeight: 20,
   },
   form: {
     gap: 16,

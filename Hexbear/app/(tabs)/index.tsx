@@ -10,6 +10,7 @@ import { useRouter } from 'expo-router';
 import { MagicColors } from '@/constants/theme';
 import { SpellCard } from '@/components/SpellCard';
 import { PointsDisplay } from '@/components/PointsDisplay';
+import { LogoMark } from '@/components/LogoMark';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function HomeScreen() {
@@ -36,7 +37,10 @@ export default function HomeScreen() {
                 Your Grimoire of Eco-Spells
               </Text>
             </View>
-            <Text style={styles.headerIcon}>{'🐻'}</Text>
+            <View style={styles.headerLogoRow}>
+              <LogoMark size="small" />
+              <Text style={styles.headerBrandName}>Hexbear</Text>
+            </View>
           </View>
         </View>
 
@@ -163,8 +167,16 @@ const styles = StyleSheet.create({
     color: MagicColors.textPrimary,
     marginTop: 4,
   },
-  headerIcon: {
-    fontSize: 40,
+  headerLogoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  headerBrandName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: MagicColors.gold,
+    letterSpacing: 1,
   },
 
   // Mission Banner
