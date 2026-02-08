@@ -36,7 +36,7 @@ export default function HomeScreen() {
                 </Text>
               </Text>
               <Text style={styles.headerSubtitle}>
-                Your Grimoire of Eco-Spells
+                Your Grimoire of Spells
               </Text>
             </View>
             <View style={styles.rabbitAnimation}>
