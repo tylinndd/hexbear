@@ -11,7 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import * as Location from 'expo-location';
-import { MagicColors } from '@/constants/theme';
+import { MagicColors, Fonts, FontWeights, FontSizes } from '@/constants/theme';
 import { MagicButton } from '@/components/MagicButton';
 import { SuccessModal } from '@/components/SuccessModal';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,6 +22,7 @@ import {
   getSiteTypeIcon,
   FOOD_WASTE_STATS,
 } from '@/constants/donation-sites';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function DonateScreen() {
   const [sites, setSites] = useState<DonationSite[]>(DEMO_DONATION_SITES);
@@ -134,7 +135,9 @@ export default function DonateScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.spellIcon}>{'🍞'}</Text>
+          <View style={styles.spellIconContainer}>
+            <Ionicons name="heart" size={56} color={MagicColors.textLight} />
+          </View>
           <Text style={styles.spellTitle}>Food Rescue Portal</Text>
           <Text style={styles.spellSubtitle}>
             Community Food Sharing Spell
@@ -166,9 +169,13 @@ export default function DonateScreen() {
         {selectedSite && (
           <View style={styles.selectedCard}>
             <View style={styles.selectedHeader}>
-              <Text style={styles.selectedIcon}>
-                {getSiteTypeIcon(selectedSite.type)}
-              </Text>
+              <View style={styles.selectedIconContainer}>
+                <Ionicons 
+                  name={getSiteTypeIcon(selectedSite.type) as any} 
+                  size={32} 
+                  color={MagicColors.donateRose}
+                />
+              </View>
               <View style={styles.selectedInfo}>
                 <Text style={styles.selectedName}>{selectedSite.name}</Text>
                 <Text style={styles.selectedType}>
@@ -176,20 +183,23 @@ export default function DonateScreen() {
                 </Text>
               </View>
               <TouchableOpacity onPress={() => setSelectedSite(null)}>
-                <Text style={styles.closeButton}>{'✕'}</Text>
+                <Ionicons name="close-circle" size={28} color={MagicColors.textMuted} />
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.selectedAddress}>
-              {'📍'} {selectedSite.address}
-            </Text>
-            <Text style={styles.selectedHours}>
-              {'🕐'} {selectedSite.hours}
-            </Text>
+            <View style={styles.selectedAddressRow}>
+              <Ionicons name="location" size={16} color={MagicColors.textSecondary} />
+              <Text style={styles.selectedAddress}>{selectedSite.address}</Text>
+            </View>
+            <View style={styles.selectedAddressRow}>
+              <Ionicons name="time" size={16} color={MagicColors.textSecondary} />
+              <Text style={styles.selectedHours}>{selectedSite.hours}</Text>
+            </View>
             {selectedSite.phone && (
-              <Text style={styles.selectedPhone}>
-                {'📞'} {selectedSite.phone}
-              </Text>
+              <View style={styles.selectedAddressRow}>
+                <Ionicons name="call" size={16} color={MagicColors.textSecondary} />
+                <Text style={styles.selectedPhone}>{selectedSite.phone}</Text>
+              </View>
             )}
 
             <Text style={styles.selectedDescription}>
@@ -208,7 +218,7 @@ export default function DonateScreen() {
             <View style={styles.selectedActions}>
               <MagicButton
                 title="Get Directions"
-                icon="🗺️"
+                iconName="map"
                 variant="outline"
                 onPress={() => openDirections(selectedSite)}
                 size="medium"
@@ -216,7 +226,7 @@ export default function DonateScreen() {
               />
               <MagicButton
                 title="Donated!"
-                icon="✨"
+                iconName="checkmark-circle"
                 onPress={confirmDonation}
                 size="medium"
                 style={{ flex: 1 }}
@@ -224,9 +234,10 @@ export default function DonateScreen() {
             </View>
 
             <View style={styles.rewardPreview}>
+              <Ionicons name="star" size={20} color={MagicColors.gold} style={{ marginRight: 8 }} />
               <Text style={styles.rewardText}>
-                {'🌟'} Completing this spell awards{' '}
-                <Text style={{ color: MagicColors.gold, fontWeight: '800' }}>
+                Completing this spell awards{' '}
+                <Text style={{ color: MagicColors.gold, fontWeight: FontWeights.extrabold }}>
                   +{FOOD_WASTE_STATS.pointsPerDonation} GHG points
                 </Text>{' '}
                 and saves ~{FOOD_WASTE_STATS.co2PerDonation} kg CO₂!
@@ -237,9 +248,12 @@ export default function DonateScreen() {
 
         {/* Nearby Sites List */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>
-            {'🗺️'}  Nearby Portals
-          </Text>
+          <View style={styles.sectionTitleRow}>
+            <Ionicons name="map" size={24} color={MagicColors.textPrimary} />
+            <Text style={styles.sectionTitle}>
+              Nearby Portals
+            </Text>
+          </View>
           <Text style={styles.sectionSubtitle}>
             Select a donation site to begin the spell
           </Text>
@@ -255,9 +269,13 @@ export default function DonateScreen() {
             onPress={() => setSelectedSite(site)}
             activeOpacity={0.85}
           >
-            <Text style={styles.siteIcon}>
-              {getSiteTypeIcon(site.type)}
-            </Text>
+            <View style={styles.siteIconContainer}>
+              <Ionicons 
+                name={getSiteTypeIcon(site.type) as any} 
+                size={28} 
+                color={MagicColors.donateRose}
+              />
+            </View>
             <View style={styles.siteContent}>
               <Text style={styles.siteName}>{site.name}</Text>
               <Text style={styles.siteType}>
@@ -277,7 +295,7 @@ export default function DonateScreen() {
         {/* No sites fallback */}
         {sites.length === 0 && (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>{'🌀'}</Text>
+            <Ionicons name="compass-outline" size={48} color={MagicColors.textMuted} style={styles.emptyIcon} />
             <Text style={styles.emptyTitle}>No Portals Found</Text>
             <Text style={styles.emptyText}>
               No nearby donation sites found. But fear not! You can directly
@@ -288,9 +306,10 @@ export default function DonateScreen() {
 
         {/* Food waste info */}
         <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>
-            {'🌍'}  Why Food Rescue Matters
-          </Text>
+          <View style={styles.infoTitleRow}>
+            <Ionicons name="earth" size={20} color={MagicColors.emerald} style={{ marginRight: 8 }} />
+            <Text style={styles.infoTitle}>Why Food Rescue Matters</Text>
+          </View>
           <Text style={styles.infoText}>
             If food waste were its own country, it would be the third-largest
             emitter of greenhouse gases after China and the USA. By rescuing
@@ -324,7 +343,7 @@ export default function DonateScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: MagicColors.darkBg,
+    backgroundColor: MagicColors.parchment,
   },
   scrollContent: {
     padding: 20,
@@ -337,22 +356,42 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     paddingTop: 16,
   },
-  spellIcon: {
-    fontSize: 56,
-    marginBottom: 8,
+  spellIconContainer: {
+    width: 96,
+    height: 96,
+    borderRadius: 24,
+    backgroundColor: MagicColors.cardOrange,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    borderWidth: 0,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 8px 20px rgba(0, 0, 0, 0.25)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.25,
+        shadowRadius: 16,
+        elevation: 6,
+      },
+    }),
   },
   spellTitle: {
-    fontSize: 28,
-    fontWeight: '800',
+    fontSize: FontSizes.pageTitle,
+    fontWeight: FontWeights.extrabold,
     color: MagicColors.textPrimary,
+    fontFamily: Fonts.heading,
   },
   spellSubtitle: {
     fontSize: 14,
     color: MagicColors.donateRose,
-    fontWeight: '600',
+    fontWeight: FontWeights.semibold,
     marginTop: 4,
     textTransform: 'uppercase',
     letterSpacing: 1,
+    fontFamily: Fonts.body,
   },
   spellDescription: {
     fontSize: 14,
@@ -360,17 +399,29 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
     lineHeight: 20,
+    fontFamily: Fonts.body,
   },
 
   // Impact Banner
   impactBanner: {
     flexDirection: 'row',
-    backgroundColor: MagicColors.donateRose + '15',
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: MagicColors.cardOrange,
+    borderRadius: 20,
+    padding: 20,
     marginBottom: 20,
-    borderWidth: 1,
-    borderColor: MagicColors.donateRose + '25',
+    borderWidth: 0,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 8px 20px rgba(0, 0, 0, 0.25)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.25,
+        shadowRadius: 16,
+        elevation: 6,
+      },
+    }),
   },
   impactStat: {
     flex: 1,
@@ -378,38 +429,58 @@ const styles = StyleSheet.create({
   },
   impactStatValue: {
     fontSize: 28,
-    fontWeight: '800',
-    color: MagicColors.donateRose,
+    fontWeight: FontWeights.extrabold,
+    color: MagicColors.textLight,
+    fontFamily: Fonts.mono,
   },
   impactStatLabel: {
     fontSize: 11,
-    color: MagicColors.textSecondary,
+    color: MagicColors.textLight,
     textAlign: 'center',
     marginTop: 4,
     lineHeight: 15,
+    fontFamily: Fonts.body,
+    opacity: 0.9,
   },
   impactDivider: {
     width: 1,
-    backgroundColor: MagicColors.donateRose + '30',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     marginHorizontal: 12,
   },
 
   // Selected Site
   selectedCard: {
-    backgroundColor: MagicColors.darkCard,
+    backgroundColor: MagicColors.offWhiteSolid,
     borderRadius: 20,
     padding: 20,
     marginBottom: 20,
     borderWidth: 2,
     borderColor: MagicColors.donateRose + '50',
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.08)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 3,
+      },
+    }),
   },
   selectedHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
   },
-  selectedIcon: {
-    fontSize: 36,
+  selectedIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: MagicColors.donateRose + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginRight: 12,
   },
   selectedInfo: {
@@ -465,14 +536,16 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   acceptedItem: {
-    backgroundColor: MagicColors.darkElevated,
+    backgroundColor: MagicColors.donateRose + '15',
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: MagicColors.donateRose + '30',
   },
   acceptedItemText: {
     fontSize: 12,
-    color: MagicColors.textSecondary,
+    color: MagicColors.textPrimary,
   },
   selectedActions: {
     flexDirection: 'row',
@@ -509,19 +582,37 @@ const styles = StyleSheet.create({
   siteCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: MagicColors.darkCard,
+    backgroundColor: MagicColors.offWhiteSolid,
     borderRadius: 16,
     padding: 14,
     marginBottom: 10,
-    borderWidth: 1,
-    borderColor: MagicColors.border,
+    borderWidth: 2,
+    borderColor: MagicColors.donateRose + '30',
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.06)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        elevation: 2,
+      },
+    }),
   },
   siteCardSelected: {
-    borderColor: MagicColors.donateRose + '60',
-    backgroundColor: MagicColors.donateRose + '08',
+    borderColor: MagicColors.donateRose,
+    backgroundColor: MagicColors.donateRose + '15',
+    borderWidth: 2,
   },
-  siteIcon: {
-    fontSize: 32,
+  siteIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: MagicColors.donateRose + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginRight: 12,
   },
   siteContent: {
@@ -545,32 +636,46 @@ const styles = StyleSheet.create({
   },
   distanceBadge: {
     alignItems: 'center',
-    backgroundColor: MagicColors.darkElevated,
+    backgroundColor: MagicColors.donateRose + '15',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 10,
+    borderWidth: 1,
+    borderColor: MagicColors.donateRose + '30',
   },
   distanceValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: MagicColors.textPrimary,
+    color: MagicColors.donateRose,
   },
   distanceUnit: {
     fontSize: 10,
-    color: MagicColors.textSecondary,
+    color: MagicColors.donateRose,
+    opacity: 0.7,
   },
 
   // Empty state
   emptyState: {
     alignItems: 'center',
     padding: 32,
-    backgroundColor: MagicColors.darkCard,
+    backgroundColor: MagicColors.offWhiteSolid,
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: MagicColors.border,
+    borderWidth: 2,
+    borderColor: MagicColors.borderLight,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.06)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        elevation: 2,
+      },
+    }),
   },
   emptyIcon: {
-    fontSize: 48,
     marginBottom: 12,
   },
   emptyTitle: {
@@ -595,11 +700,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: MagicColors.emeraldDark + '30',
   },
+  infoTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   infoTitle: {
     fontSize: 15,
     fontWeight: '700',
     color: MagicColors.emerald,
-    marginBottom: 8,
   },
   infoText: {
     fontSize: 13,

@@ -6,7 +6,9 @@ import {
   SafeAreaView,
   ScrollView,
   Alert,
+  Platform,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { MagicColors } from '@/constants/theme';
 import { MagicButton } from '@/components/MagicButton';
 import { PointsDisplay } from '@/components/PointsDisplay';
@@ -37,6 +39,7 @@ export default function ProfileScreen() {
   useEffect(() => {
     fetchLeaderboard();
     fetchRecentActions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchLeaderboard = async () => {
@@ -133,13 +136,13 @@ export default function ProfileScreen() {
   const getActionIcon = (type: string) => {
     switch (type) {
       case 'recycle':
-        return '♻️';
+        return 'leaf';
       case 'energy':
-        return '⚡';
+        return 'flash';
       case 'donate':
-        return '🍞';
+        return 'heart';
       default:
-        return '✨';
+        return 'sparkles';
     }
   };
 
@@ -167,7 +170,7 @@ export default function ProfileScreen() {
         {/* Profile Header */}
         <View style={styles.profileHeader}>
           <View style={styles.avatarContainer}>
-            <Text style={styles.avatar}>{currentLevel.icon}</Text>
+            <Ionicons name="person" size={40} color={MagicColors.gold} />
           </View>
           <Text style={styles.wizardName}>
             {profile?.wizard_name || 'Apprentice'}
@@ -201,9 +204,10 @@ export default function ProfileScreen() {
 
         {/* Leaderboard */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>
-            {'🏆'}  Community Leaderboard
-          </Text>
+          <View style={styles.sectionTitleRow}>
+            <Ionicons name="trophy" size={24} color={MagicColors.textPrimary} style={{ marginRight: 8 }} />
+            <Text style={styles.sectionTitle}>Community Leaderboard</Text>
+          </View>
           <Text style={styles.sectionSubtitle}>
             Top EcoMages in the community
           </Text>
@@ -225,17 +229,17 @@ export default function ProfileScreen() {
                 ]}
               >
                 <View style={styles.rankBadge}>
-                  <Text style={styles.rankText}>
-                    {index === 0
-                      ? '🥇'
-                      : index === 1
-                        ? '🥈'
-                        : index === 2
-                          ? '🥉'
-                          : `#${index + 1}`}
-                  </Text>
+                  {index < 3 ? (
+                    <Ionicons 
+                      name="medal" 
+                      size={20} 
+                      color={index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : '#CD7F32'}
+                    />
+                  ) : (
+                    <Text style={styles.rankText}>#{index + 1}</Text>
+                  )}
                 </View>
-                <Text style={styles.leaderIcon}>{entryLevel.icon}</Text>
+                <Ionicons name="person-circle" size={24} color={MagicColors.textMuted} style={{ marginHorizontal: 8 }} />
                 <View style={styles.leaderInfo}>
                   <Text
                     style={[
@@ -260,9 +264,10 @@ export default function ProfileScreen() {
         {recentActions.length > 0 && (
           <>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>
-                {'📜'}  Spell History
-              </Text>
+              <View style={styles.sectionTitleRow}>
+                <Ionicons name="list" size={24} color={MagicColors.textPrimary} style={{ marginRight: 8 }} />
+                <Text style={styles.sectionTitle}>Spell History</Text>
+              </View>
             </View>
 
             <View style={styles.actionsCard}>
@@ -274,9 +279,12 @@ export default function ProfileScreen() {
                     index < recentActions.length - 1 && styles.actionBorder,
                   ]}
                 >
-                  <Text style={styles.actionIcon}>
-                    {getActionIcon(action.type)}
-                  </Text>
+                  <Ionicons 
+                    name={getActionIcon(action.type) as any} 
+                    size={24} 
+                    color={MagicColors.emerald}
+                    style={styles.actionIcon}
+                  />
                   <View style={styles.actionInfo}>
                     <Text style={styles.actionName}>
                       {getActionLabel(action.type)}
@@ -296,9 +304,10 @@ export default function ProfileScreen() {
 
         {/* Level Progression */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>
-            {'🎓'}  Wizard Ranks
-          </Text>
+          <View style={styles.sectionTitleRow}>
+            <Ionicons name="school" size={24} color={MagicColors.textPrimary} style={{ marginRight: 8 }} />
+            <Text style={styles.sectionTitle}>Wizard Ranks</Text>
+          </View>
         </View>
 
         <View style={styles.ranksCard}>
@@ -314,11 +323,14 @@ export default function ProfileScreen() {
                   isCurrent && styles.rankRowCurrent,
                 ]}
               >
-                <Text
-                  style={[styles.rankIcon, !isUnlocked && styles.rankLocked]}
-                >
-                  {isUnlocked ? level.icon : '🔒'}
-                </Text>
+                <View style={styles.rankIconContainer}>
+                  <Ionicons
+                    name={isUnlocked ? "star" : "lock-closed"}
+                    size={24}
+                    color={isUnlocked ? MagicColors.gold : MagicColors.textMuted}
+                    style={styles.rankIcon}
+                  />
+                </View>
                 <View style={styles.rankInfo}>
                   <Text
                     style={[
@@ -333,7 +345,7 @@ export default function ProfileScreen() {
                   </Text>
                 </View>
                 {isUnlocked && (
-                  <Text style={styles.rankUnlocked}>{'✅'}</Text>
+                  <Ionicons name="checkmark-circle" size={20} color={MagicColors.successGreen} />
                 )}
               </View>
             );
@@ -344,7 +356,7 @@ export default function ProfileScreen() {
         <View style={styles.logoutSection}>
           <MagicButton
             title="Leave the Sanctum"
-            icon="🚪"
+            iconName="log-out"
             variant="danger"
             onPress={handleLogout}
             size="medium"
@@ -361,7 +373,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: MagicColors.darkBg,
+    backgroundColor: MagicColors.parchment,
   },
   scrollContent: {
     padding: 20,
@@ -384,9 +396,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: MagicColors.gold + '40',
     marginBottom: 12,
-  },
-  avatar: {
-    fontSize: 40,
   },
   wizardName: {
     fontSize: 24,
@@ -414,12 +423,24 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: MagicColors.darkCard,
+    backgroundColor: MagicColors.offWhiteSolid,
     borderRadius: 14,
     padding: 14,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: MagicColors.border,
+    borderWidth: 2,
+    borderColor: MagicColors.borderLight,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.06)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        elevation: 2,
+      },
+    }),
   },
   statValue: {
     fontSize: 22,
@@ -438,6 +459,10 @@ const styles = StyleSheet.create({
     marginTop: 24,
     marginBottom: 12,
   },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
@@ -451,11 +476,23 @@ const styles = StyleSheet.create({
 
   // Leaderboard
   leaderboardCard: {
-    backgroundColor: MagicColors.darkCard,
+    backgroundColor: MagicColors.offWhiteSolid,
     borderRadius: 20,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: MagicColors.border,
+    borderWidth: 2,
+    borderColor: MagicColors.borderLight,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.08)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 3,
+      },
+    }),
   },
   leaderboardRow: {
     flexDirection: 'row',
@@ -474,13 +511,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   rankText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
     color: MagicColors.textSecondary,
-  },
-  leaderIcon: {
-    fontSize: 24,
-    marginHorizontal: 8,
   },
   leaderInfo: {
     flex: 1,
@@ -506,11 +539,23 @@ const styles = StyleSheet.create({
 
   // Recent Actions
   actionsCard: {
-    backgroundColor: MagicColors.darkCard,
+    backgroundColor: MagicColors.offWhiteSolid,
     borderRadius: 20,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: MagicColors.border,
+    borderWidth: 2,
+    borderColor: MagicColors.borderLight,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.08)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 3,
+      },
+    }),
   },
   actionRow: {
     flexDirection: 'row',
@@ -522,7 +567,6 @@ const styles = StyleSheet.create({
     borderBottomColor: MagicColors.separator,
   },
   actionIcon: {
-    fontSize: 24,
     marginRight: 12,
   },
   actionInfo: {
@@ -546,11 +590,23 @@ const styles = StyleSheet.create({
 
   // Ranks
   ranksCard: {
-    backgroundColor: MagicColors.darkCard,
+    backgroundColor: MagicColors.offWhiteSolid,
     borderRadius: 20,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: MagicColors.border,
+    borderWidth: 2,
+    borderColor: MagicColors.borderLight,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.08)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 3,
+      },
+    }),
   },
   rankRow: {
     flexDirection: 'row',
@@ -562,14 +618,12 @@ const styles = StyleSheet.create({
   rankRowCurrent: {
     backgroundColor: MagicColors.gold + '10',
   },
-  rankIcon: {
-    fontSize: 24,
-    marginRight: 12,
+  rankIconContainer: {
     width: 32,
-    textAlign: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
-  rankLocked: {
-    opacity: 0.5,
+  rankIcon: {
   },
   rankInfo: {
     flex: 1,
@@ -586,9 +640,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: MagicColors.textSecondary,
     marginTop: 1,
-  },
-  rankUnlocked: {
-    fontSize: 16,
   },
 
   // Logout

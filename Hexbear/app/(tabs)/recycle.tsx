@@ -8,9 +8,10 @@ import {
   Alert,
   ActivityIndicator,
   Image,
+  Platform,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { MagicColors } from '@/constants/theme';
+import { MagicColors, Fonts, FontWeights, FontSizes } from '@/constants/theme';
 import { MagicButton } from '@/components/MagicButton';
 import { SuccessModal } from '@/components/SuccessModal';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,6 +20,7 @@ import {
   identifyMaterial,
   RecyclingMaterial,
 } from '@/constants/recycling-data';
+import { Ionicons } from '@expo/vector-icons';
 
 type SpellStage = 'intro' | 'camera' | 'analyzing' | 'result';
 
@@ -154,13 +156,16 @@ export default function RecycleScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centeredContent}>
-          <Text style={styles.permissionIcon}>{'📷'}</Text>
+          <View style={styles.permissionIconContainer}>
+            <Ionicons name="camera" size={56} color={MagicColors.textSecondary} />
+          </View>
           <Text style={styles.permissionTitle}>Camera Access Needed</Text>
           <Text style={styles.permissionText}>
             Grant camera permission to cast the Recyclify Reveal spell.
           </Text>
           <MagicButton
             title="Grant Permission"
+            iconName="checkmark-circle"
             onPress={requestPermission}
             style={{ marginTop: 20 }}
           />
@@ -182,7 +187,10 @@ export default function RecycleScreen() {
             {/* Magical overlay */}
             <View style={styles.cameraOverlay}>
               <View style={styles.scanHeader}>
-                <Text style={styles.scanTitle}>{'♻️'}  Recyclify Reveal</Text>
+                <View style={styles.scanTitleRow}>
+                  <Ionicons name="leaf" size={24} color="#fff" />
+                  <Text style={styles.scanTitle}>Recyclify Reveal</Text>
+                </View>
                 <Text style={styles.scanSubtitle}>
                   Center the item or its recycling symbol
                 </Text>
@@ -205,7 +213,7 @@ export default function RecycleScreen() {
                 />
                 <MagicButton
                   title="Cast Spell"
-                  icon="✨"
+                  iconName="sparkles"
                   size="large"
                   onPress={takePhoto}
                 />
@@ -224,7 +232,9 @@ export default function RecycleScreen() {
             <>
               {/* Spell Header */}
               <View style={styles.spellHeader}>
-                <Text style={styles.spellIcon}>{'♻️'}</Text>
+                <View style={styles.spellIconContainer}>
+                  <Ionicons name="leaf" size={56} color={MagicColors.textLight} />
+                </View>
                 <Text style={styles.spellTitle}>Recyclify Reveal</Text>
                 <Text style={styles.spellSubtitle}>
                   Recycling Identification Spell
@@ -240,7 +250,9 @@ export default function RecycleScreen() {
                 <Text style={styles.stepsTitle}>How to Cast</Text>
 
                 <View style={styles.step}>
-                  <Text style={styles.stepNumber}>1</Text>
+                  <View style={[styles.stepNumber, { backgroundColor: 'rgba(255, 255, 255, 0.3)' }]}>
+                    <Text style={[styles.stepNumberText, { color: MagicColors.textLight }]}>1</Text>
+                  </View>
                   <View style={styles.stepContent}>
                     <Text style={styles.stepTitle}>Scan the Item</Text>
                     <Text style={styles.stepDesc}>
@@ -251,7 +263,9 @@ export default function RecycleScreen() {
                 </View>
 
                 <View style={styles.step}>
-                  <Text style={styles.stepNumber}>2</Text>
+                  <View style={[styles.stepNumber, { backgroundColor: 'rgba(255, 255, 255, 0.3)' }]}>
+                    <Text style={[styles.stepNumberText, { color: MagicColors.textLight }]}>2</Text>
+                  </View>
                   <View style={styles.stepContent}>
                     <Text style={styles.stepTitle}>Discover Its Fate</Text>
                     <Text style={styles.stepDesc}>
@@ -262,7 +276,9 @@ export default function RecycleScreen() {
                 </View>
 
                 <View style={styles.step}>
-                  <Text style={styles.stepNumber}>3</Text>
+                  <View style={[styles.stepNumber, { backgroundColor: 'rgba(255, 255, 255, 0.3)' }]}>
+                    <Text style={[styles.stepNumberText, { color: MagicColors.textLight }]}>3</Text>
+                  </View>
                   <View style={styles.stepContent}>
                     <Text style={styles.stepTitle}>Cast & Earn</Text>
                     <Text style={styles.stepDesc}>
@@ -276,9 +292,10 @@ export default function RecycleScreen() {
               <View style={styles.castButtonContainer}>
                 <MagicButton
                   title="Begin Spell"
-                  icon="📷"
+                  iconName="camera"
                   onPress={startScan}
                   size="large"
+                  variant="emerald"
                   style={{ width: '100%' }}
                 />
               </View>
@@ -292,12 +309,15 @@ export default function RecycleScreen() {
               )}
               <ActivityIndicator
                 size="large"
-                color={MagicColors.gold}
+                color={MagicColors.recycleGreen}
                 style={{ marginTop: 24 }}
               />
-              <Text style={styles.analyzingText}>
-                {'🔮'}  Casting Recyclify Reveal...
-              </Text>
+              <View style={styles.analyzingTextRow}>
+                <Ionicons name="sparkles" size={20} color={MagicColors.recycleGreen} />
+                <Text style={styles.analyzingText}>
+                  Casting Recyclify Reveal...
+                </Text>
+              </View>
               <Text style={styles.analyzingSubtext}>
                 Analyzing the magical essence of this item
               </Text>
@@ -320,9 +340,12 @@ export default function RecycleScreen() {
                         : styles.resultNotRecyclable,
                     ]}
                   >
-                    <Text style={styles.resultBadgeIcon}>
-                      {material.recyclable ? '✅' : '❌'}
-                    </Text>
+                    <Ionicons 
+                      name={material.recyclable ? "checkmark-circle" : "close-circle"} 
+                      size={24} 
+                      color={material.recyclable ? MagicColors.successGreen : MagicColors.crimson}
+                      style={styles.resultBadgeIcon}
+                    />
                     <Text style={styles.resultBadgeText}>
                       {material.recyclable ? 'Recyclable!' : 'Not Recyclable'}
                     </Text>
@@ -335,13 +358,16 @@ export default function RecycleScreen() {
 
                   {material.recyclable && (
                     <View style={styles.impactBox}>
-                      <Text style={styles.impactTitle}>
-                        {'🌿'}  Environmental Impact
-                      </Text>
+                      <View style={styles.impactTitleRow}>
+                        <Ionicons name="leaf" size={20} color={MagicColors.emeraldDeep} />
+                        <Text style={styles.impactTitle}>
+                          Environmental Impact
+                        </Text>
+                      </View>
                       <Text style={styles.impactText}>
                         Recycling this item saves ~{material.co2SavedKg} kg CO₂
                         {'\n'}You will earn{' '}
-                        <Text style={{ color: MagicColors.gold, fontWeight: '700' }}>
+                        <Text style={{ color: MagicColors.gold, fontWeight: FontWeights.bold }}>
                           +{material.points} GHG points
                         </Text>
                       </Text>
@@ -349,8 +375,9 @@ export default function RecycleScreen() {
                   )}
 
                   <View style={styles.funFactBox}>
+                    <Ionicons name="bulb" size={18} color={MagicColors.goldDark} style={{ marginRight: 8 }} />
                     <Text style={styles.funFactText}>
-                      {'💡'} {material.funFact}
+                      {material.funFact}
                     </Text>
                   </View>
 
@@ -358,15 +385,17 @@ export default function RecycleScreen() {
                     {material.recyclable && (
                       <MagicButton
                         title="Confirm Recycled!"
-                        icon="♻️"
+                        iconName="checkmark-circle"
                         onPress={confirmRecycle}
                         size="large"
+                        variant="emerald"
                         style={{ flex: 1, marginRight: 8 }}
                       />
                     )}
                     <MagicButton
                       title="Scan Again"
                       variant="outline"
+                      iconName="refresh"
                       onPress={resetSpell}
                       size="large"
                       style={{ flex: material.recyclable ? 0.6 : 1 }}
@@ -376,7 +405,7 @@ export default function RecycleScreen() {
               ) : (
                 <>
                   <View style={styles.noResultBox}>
-                    <Text style={styles.noResultIcon}>{'🔍'}</Text>
+                    <Ionicons name="search" size={48} color={MagicColors.textMuted} style={{ marginBottom: 12 }} />
                     <Text style={styles.noResultTitle}>
                       Item Not Recognized
                     </Text>
@@ -387,7 +416,7 @@ export default function RecycleScreen() {
                   </View>
                   <MagicButton
                     title="Try Again"
-                    icon="🔄"
+                    iconName="refresh"
                     onPress={resetSpell}
                     size="large"
                     style={{ marginTop: 20 }}
@@ -420,7 +449,7 @@ export default function RecycleScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: MagicColors.darkBg,
+    backgroundColor: MagicColors.parchment,
   },
   scrollContent: {
     padding: 20,
@@ -439,22 +468,42 @@ const styles = StyleSheet.create({
     marginBottom: 28,
     paddingTop: 20,
   },
-  spellIcon: {
-    fontSize: 64,
-    marginBottom: 12,
+  spellIconContainer: {
+    width: 96,
+    height: 96,
+    borderRadius: 24,
+    backgroundColor: MagicColors.cardGreen,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    borderWidth: 0,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 8px 20px rgba(0, 0, 0, 0.25)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.25,
+        shadowRadius: 16,
+        elevation: 6,
+      },
+    }),
   },
   spellTitle: {
-    fontSize: 28,
-    fontWeight: '800',
+    fontSize: FontSizes.pageTitle,
+    fontWeight: FontWeights.extrabold,
     color: MagicColors.textPrimary,
+    fontFamily: Fonts.heading,
   },
   spellSubtitle: {
     fontSize: 14,
     color: MagicColors.recycleGreen,
-    fontWeight: '600',
+    fontWeight: FontWeights.semibold,
     marginTop: 4,
     textTransform: 'uppercase',
     letterSpacing: 1,
+    fontFamily: Fonts.body,
   },
   spellDescription: {
     fontSize: 15,
@@ -463,22 +512,35 @@ const styles = StyleSheet.create({
     marginTop: 12,
     lineHeight: 22,
     paddingHorizontal: 10,
+    fontFamily: Fonts.body,
   },
 
   // Steps
   stepsContainer: {
-    backgroundColor: MagicColors.darkCard,
+    backgroundColor: MagicColors.cardGreen,
     borderRadius: 20,
-    padding: 20,
+    padding: 24,
     marginBottom: 24,
-    borderWidth: 1,
-    borderColor: MagicColors.border,
+    borderWidth: 0,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 8px 20px rgba(0, 0, 0, 0.25)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.25,
+        shadowRadius: 16,
+        elevation: 6,
+      },
+    }),
   },
   stepsTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: FontSizes.cardTitle,
+    fontWeight: FontWeights.bold,
     color: MagicColors.textPrimary,
     marginBottom: 16,
+    fontFamily: Fonts.heading,
   },
   step: {
     flexDirection: 'row',
@@ -486,30 +548,33 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   stepNumber: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: MagicColors.recycleGreen + '20',
-    color: MagicColors.recycleGreen,
-    fontSize: 14,
-    fontWeight: '700',
-    textAlign: 'center',
-    lineHeight: 28,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginRight: 12,
+  },
+  stepNumberText: {
+    fontSize: 14,
+    fontWeight: FontWeights.bold,
+    fontFamily: Fonts.mono,
   },
   stepContent: {
     flex: 1,
   },
   stepTitle: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: FontWeights.semibold,
     color: MagicColors.textPrimary,
+    fontFamily: Fonts.body,
   },
   stepDesc: {
     fontSize: 13,
     color: MagicColors.textSecondary,
     marginTop: 2,
     lineHeight: 18,
+    fontFamily: Fonts.body,
   },
 
   // Cast button
@@ -534,15 +599,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 50,
   },
+  scanTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   scanTitle: {
     fontSize: 22,
-    fontWeight: '700',
+    fontWeight: FontWeights.bold,
     color: '#fff',
+    fontFamily: Fonts.heading,
   },
   scanSubtitle: {
     fontSize: 14,
     color: 'rgba(255,255,255,0.8)',
     marginTop: 4,
+    fontFamily: Fonts.body,
   },
   reticle: {
     width: 250,
@@ -592,20 +664,27 @@ const styles = StyleSheet.create({
   },
 
   // Permission
-  permissionIcon: {
-    fontSize: 64,
+  permissionIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 20,
+    backgroundColor: MagicColors.textSecondary + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 16,
   },
   permissionTitle: {
     fontSize: 22,
-    fontWeight: '700',
+    fontWeight: FontWeights.bold,
     color: MagicColors.textPrimary,
     marginBottom: 8,
+    fontFamily: Fonts.heading,
   },
   permissionText: {
     fontSize: 15,
     color: MagicColors.textSecondary,
     textAlign: 'center',
+    fontFamily: Fonts.body,
   },
 
   // Analyzing
@@ -617,18 +696,27 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 250,
     borderRadius: 20,
-    backgroundColor: MagicColors.darkCard,
+    backgroundColor: MagicColors.offWhiteSolid,
+    borderWidth: 2,
+    borderColor: MagicColors.borderLight,
+  },
+  analyzingTextRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 16,
   },
   analyzingText: {
     fontSize: 20,
-    fontWeight: '700',
-    color: MagicColors.gold,
-    marginTop: 16,
+    fontWeight: FontWeights.bold,
+    color: MagicColors.recycleGreen,
+    fontFamily: Fonts.heading,
   },
   analyzingSubtext: {
     fontSize: 14,
     color: MagicColors.textSecondary,
     marginTop: 4,
+    fontFamily: Fonts.body,
   },
 
   // Result
@@ -644,32 +732,32 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginTop: 20,
     marginBottom: 12,
+    borderWidth: 2,
   },
   resultRecyclable: {
-    backgroundColor: MagicColors.success + '20',
-    borderWidth: 1,
-    borderColor: MagicColors.success + '40',
+    backgroundColor: MagicColors.successGreen + '15',
+    borderColor: MagicColors.borderEmerald,
   },
   resultNotRecyclable: {
-    backgroundColor: MagicColors.error + '20',
-    borderWidth: 1,
-    borderColor: MagicColors.error + '40',
+    backgroundColor: MagicColors.crimson + '15',
+    borderColor: MagicColors.crimson,
   },
   resultBadgeIcon: {
-    fontSize: 20,
     marginRight: 8,
   },
   resultBadgeText: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: FontWeights.bold,
     color: MagicColors.textPrimary,
+    fontFamily: Fonts.heading,
   },
   materialName: {
     fontSize: 22,
-    fontWeight: '700',
+    fontWeight: FontWeights.bold,
     color: MagicColors.textPrimary,
     textAlign: 'center',
     marginBottom: 8,
+    fontFamily: Fonts.heading,
   },
   materialInstructions: {
     fontSize: 14,
@@ -678,36 +766,50 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 16,
     paddingHorizontal: 10,
+    fontFamily: Fonts.body,
   },
   impactBox: {
-    backgroundColor: MagicColors.emeraldDeep + '30',
+    backgroundColor: MagicColors.emeraldDeep + '10',
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
-    borderWidth: 1,
-    borderColor: MagicColors.emeraldDark + '40',
+    borderWidth: 2,
+    borderColor: MagicColors.borderEmerald,
+  },
+  impactTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
   },
   impactTitle: {
     fontSize: 15,
-    fontWeight: '700',
-    color: MagicColors.emerald,
-    marginBottom: 6,
+    fontWeight: FontWeights.bold,
+    color: MagicColors.emeraldDeep,
+    fontFamily: Fonts.heading,
   },
   impactText: {
     fontSize: 14,
     color: MagicColors.textSecondary,
     lineHeight: 22,
+    fontFamily: Fonts.body,
   },
   funFactBox: {
+    flexDirection: 'row',
     backgroundColor: MagicColors.gold + '10',
     borderRadius: 12,
     padding: 14,
     marginBottom: 20,
+    borderWidth: 1,
+    borderColor: MagicColors.borderAmber,
+    alignItems: 'center',
   },
   funFactText: {
+    flex: 1,
     fontSize: 13,
-    color: MagicColors.goldDark,
+    color: MagicColors.textPrimary,
     lineHeight: 18,
+    fontFamily: Fonts.body,
   },
   resultActions: {
     flexDirection: 'row',
@@ -719,25 +821,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 20,
     padding: 20,
-    backgroundColor: MagicColors.darkCard,
+    backgroundColor: MagicColors.offWhiteSolid,
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: MagicColors.border,
-  },
-  noResultIcon: {
-    fontSize: 48,
-    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: MagicColors.borderLight,
   },
   noResultTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: FontWeights.bold,
     color: MagicColors.textPrimary,
     marginBottom: 8,
+    fontFamily: Fonts.heading,
   },
   noResultText: {
     fontSize: 14,
     color: MagicColors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
+    fontFamily: Fonts.body,
   },
 });

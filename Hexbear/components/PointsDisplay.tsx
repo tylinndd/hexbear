@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
-import { MagicColors } from '@/constants/theme';
+import { View, Text, StyleSheet, Animated, Platform } from 'react-native';
+import { MagicColors, Fonts, FontWeights, FontSizes } from '@/constants/theme';
 import {
   getWizardLevel,
   getNextLevel,
@@ -110,12 +110,24 @@ export function PointsDisplay({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: MagicColors.darkCard,
+    backgroundColor: MagicColors.offWhiteSolid,
     borderRadius: 20,
     padding: 20,
     marginHorizontal: 20,
-    borderWidth: 1,
-    borderColor: MagicColors.border,
+    borderWidth: 2,
+    borderColor: MagicColors.borderPurple,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 0px 20px rgba(124, 77, 255, 0.15)',
+      },
+      default: {
+        shadowColor: MagicColors.purple,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.15,
+        shadowRadius: 20,
+        elevation: 5,
+      },
+    }),
   },
   levelHeader: {
     flexDirection: 'row',
@@ -129,14 +141,16 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   levelTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: FontSizes.cardTitle,
+    fontWeight: FontWeights.bold,
     color: MagicColors.textPrimary,
+    fontFamily: Fonts.heading,
   },
   levelNumber: {
     fontSize: 13,
     color: MagicColors.textSecondary,
     marginTop: 2,
+    fontFamily: Fonts.body,
   },
   pointsBadge: {
     backgroundColor: MagicColors.gold + '20',
@@ -144,44 +158,51 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: MagicColors.borderAmber,
   },
   pointsValue: {
     fontSize: 22,
-    fontWeight: '800',
+    fontWeight: FontWeights.extrabold,
     color: MagicColors.gold,
+    fontFamily: Fonts.mono,
   },
   pointsLabel: {
     fontSize: 10,
     color: MagicColors.goldDark,
-    fontWeight: '600',
+    fontWeight: FontWeights.semibold,
     marginTop: 1,
+    fontFamily: Fonts.body,
   },
   progressSection: {
     marginTop: 16,
   },
   progressBar: {
-    height: 8,
-    backgroundColor: MagicColors.darkElevated,
-    borderRadius: 4,
+    height: 10,
+    backgroundColor: MagicColors.parchmentDark,
+    borderRadius: 5,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: MagicColors.borderLight,
   },
   progressFill: {
     position: 'absolute',
     height: '100%',
     backgroundColor: MagicColors.gold,
-    borderRadius: 4,
+    borderRadius: 5,
   },
   progressGlow: {
     position: 'absolute',
     height: '100%',
     backgroundColor: MagicColors.goldLight,
-    borderRadius: 4,
+    borderRadius: 5,
   },
   progressText: {
     fontSize: 12,
     color: MagicColors.textSecondary,
     marginTop: 8,
     textAlign: 'center',
+    fontFamily: Fonts.body,
   },
 
   // Compact variant
@@ -192,6 +213,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: MagicColors.borderAmber,
   },
   compactIcon: {
     fontSize: 16,
@@ -199,12 +222,14 @@ const styles = StyleSheet.create({
   },
   compactPoints: {
     fontSize: 15,
-    fontWeight: '800',
+    fontWeight: FontWeights.extrabold,
     color: MagicColors.gold,
+    fontFamily: Fonts.mono,
   },
   compactLabel: {
     fontSize: 11,
     color: MagicColors.goldDark,
     marginLeft: 3,
+    fontFamily: Fonts.body,
   },
 });

@@ -1,24 +1,19 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { MagicColors } from '@/constants/theme';
 
-function TabIcon({ icon, label, focused }: { icon: string; label: string; focused: boolean }) {
+function TabIcon({ iconName, focused }: { iconName: string; focused: boolean }) {
   return (
     <View style={styles.tabIconContainer}>
-      <Text style={[styles.tabIcon, focused && styles.tabIconActive]}>
-        {icon}
-      </Text>
-      <Text
-        style={[
-          styles.tabLabel,
-          focused ? styles.tabLabelActive : styles.tabLabelInactive,
-        ]}
-      >
-        {label}
-      </Text>
+      <Ionicons
+        name={iconName as any}
+        size={28}
+        color={focused ? MagicColors.goldVibrant : MagicColors.textLight}
+      />
     </View>
   );
 }
@@ -40,7 +35,7 @@ export default function TabLayout() {
         options={{
           title: 'Spellbook',
           tabBarIcon: ({ focused }) => (
-            <TabIcon icon="📖" label="Spellbook" focused={focused} />
+            <TabIcon iconName="book" focused={focused} />
           ),
         }}
       />
@@ -49,7 +44,7 @@ export default function TabLayout() {
         options={{
           title: 'Recycle',
           tabBarIcon: ({ focused }) => (
-            <TabIcon icon="♻️" label="Recycle" focused={focused} />
+            <TabIcon iconName="leaf" focused={focused} />
           ),
         }}
       />
@@ -58,7 +53,7 @@ export default function TabLayout() {
         options={{
           title: 'Energy',
           tabBarIcon: ({ focused }) => (
-            <TabIcon icon="⚡" label="Energy" focused={focused} />
+            <TabIcon iconName="flash" focused={focused} />
           ),
         }}
       />
@@ -67,7 +62,7 @@ export default function TabLayout() {
         options={{
           title: 'Donate',
           tabBarIcon: ({ focused }) => (
-            <TabIcon icon="🍞" label="Donate" focused={focused} />
+            <TabIcon iconName="heart" focused={focused} />
           ),
         }}
       />
@@ -76,7 +71,7 @@ export default function TabLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ focused }) => (
-            <TabIcon icon="🧙" label="Profile" focused={focused} />
+            <TabIcon iconName="person" focused={focused} />
           ),
         }}
       />
@@ -89,31 +84,12 @@ const styles = StyleSheet.create({
     backgroundColor: MagicColors.darkSurface,
     borderTopColor: MagicColors.border,
     borderTopWidth: 1,
-    height: 80,
+    height: 70,
     paddingTop: 8,
-    paddingBottom: 16,
+    paddingBottom: 8,
   },
   tabIconContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 3,
-  },
-  tabIcon: {
-    fontSize: 22,
-    opacity: 0.6,
-  },
-  tabIconActive: {
-    opacity: 1,
-    fontSize: 24,
-  },
-  tabLabel: {
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  tabLabelActive: {
-    color: MagicColors.gold,
-  },
-  tabLabelInactive: {
-    color: MagicColors.textMuted,
   },
 });

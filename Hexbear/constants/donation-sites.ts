@@ -126,18 +126,18 @@ export function getSiteTypeLabel(type: DonationSite['type']): string {
 }
 
 /**
- * Get icon for site type
+ * Get icon name for site type (Ionicons)
  */
 export function getSiteTypeIcon(type: DonationSite['type']): string {
   switch (type) {
     case 'food_bank':
-      return '🏦';
+      return 'business';
     case 'community_fridge':
-      return '🧊';
+      return 'cube';
     case 'shelter':
-      return '🏠';
+      return 'home';
     case 'pantry':
-      return '🍞';
+      return 'basket';
   }
 }
 

@@ -5,13 +5,15 @@ import {
   StyleSheet,
   ScrollView,
   SafeAreaView,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { MagicColors } from '@/constants/theme';
+import { MagicColors, Fonts, FontWeights, FontSizes } from '@/constants/theme';
 import { SpellCard } from '@/components/SpellCard';
 import { PointsDisplay } from '@/components/PointsDisplay';
-import { LogoMark } from '@/components/LogoMark';
 import { useAuth } from '@/contexts/AuthContext';
+import { Ionicons } from '@expo/vector-icons';
+import { LottieAnimation } from '@/components/LottieAnimation';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -37,9 +39,13 @@ export default function HomeScreen() {
                 Your Grimoire of Eco-Spells
               </Text>
             </View>
-            <View style={styles.headerLogoRow}>
-              <LogoMark size="small" />
-              <Text style={styles.headerBrandName}>Hexbear</Text>
+            <View style={styles.rabbitAnimation}>
+              <LottieAnimation
+                source={require('@/assets/animations/magic-rabbit.json')}
+                loop={true}
+                autoPlay={true}
+                style={styles.rabbitLottie}
+              />
             </View>
           </View>
         </View>
@@ -49,18 +55,23 @@ export default function HomeScreen() {
 
         {/* Mission Banner */}
         <View style={styles.missionBanner}>
-          <Text style={styles.missionIcon}>{'🐉'}</Text>
+          <View style={styles.missionIconContainer}>
+            <Ionicons name="flame" size={32} color={MagicColors.textLight} />
+          </View>
           <View style={styles.missionText}>
-            <Text style={styles.missionTitle}>Daily Quest</Text>
+            <Text style={styles.missionTitle}>Daily Quest Active!</Text>
             <Text style={styles.missionDescription}>
-              Cast spells to save the community from the Climate Dragon!
+              Cast 3 spells today to earn a bonus 100 GHG points
             </Text>
           </View>
         </View>
 
         {/* Spells Section */}
         <View style={styles.spellsHeader}>
-          <Text style={styles.sectionTitle}>{'📜'}  Available Spells</Text>
+          <View style={styles.sectionTitleRow}>
+            <Ionicons name="book" size={24} color={MagicColors.textPrimary} />
+            <Text style={styles.sectionTitle}>Available Spells</Text>
+          </View>
           <Text style={styles.sectionSubtitle}>
             Tap a spell to cast it and earn GHG points
           </Text>
@@ -70,7 +81,7 @@ export default function HomeScreen() {
           title="Recyclify Reveal"
           subtitle="Recycling Identification Spell"
           description="Scan items with your camera to discover their recyclability and earn points."
-          icon="♻️"
+          iconName="leaf"
           color={MagicColors.recycleGreen}
           onPress={() => router.push('/(tabs)/recycle')}
           delay={100}
@@ -80,7 +91,7 @@ export default function HomeScreen() {
           title="WattSaver Charm"
           subtitle="Energy Conservation Spell"
           description="Track your energy usage and earn points by reducing consumption."
-          icon="⚡"
+          iconName="flash"
           color={MagicColors.energyYellow}
           onPress={() => router.push('/(tabs)/energy')}
           delay={200}
@@ -90,7 +101,7 @@ export default function HomeScreen() {
           title="Food Rescue Portal"
           subtitle="Community Food Sharing Spell"
           description="Find nearby donation sites and rescue food from going to waste."
-          icon="🍞"
+          iconName="heart"
           color={MagicColors.donateRose}
           onPress={() => router.push('/(tabs)/donate')}
           delay={300}
@@ -98,21 +109,27 @@ export default function HomeScreen() {
 
         {/* Impact Stats */}
         <View style={styles.impactSection}>
-          <Text style={styles.sectionTitle}>{'🌍'}  Your Impact</Text>
+          <View style={styles.sectionTitleRow}>
+            <Ionicons name="earth" size={24} color={MagicColors.textPrimary} />
+            <Text style={styles.sectionTitle}>Your Impact</Text>
+          </View>
           <View style={styles.impactGrid}>
-            <View style={styles.impactCard}>
+            <View style={[styles.impactCard, styles.impactCardEmerald]}>
+              <Ionicons name="leaf-outline" size={24} color={MagicColors.emeraldDeep} style={styles.impactIcon} />
               <Text style={styles.impactValue}>
                 {((profile?.total_points || 0) * 0.1).toFixed(1)}
               </Text>
               <Text style={styles.impactLabel}>kg CO₂ Saved</Text>
             </View>
-            <View style={styles.impactCard}>
+            <View style={[styles.impactCard, styles.impactCardPurple]}>
+              <Ionicons name="sparkles-outline" size={24} color={MagicColors.purple} style={styles.impactIcon} />
               <Text style={styles.impactValue}>
                 {Math.floor((profile?.total_points || 0) / 5)}
               </Text>
               <Text style={styles.impactLabel}>Spells Cast</Text>
             </View>
-            <View style={styles.impactCard}>
+            <View style={[styles.impactCard, styles.impactCardGold]}>
+              <Ionicons name="trophy-outline" size={24} color={MagicColors.goldDark} style={styles.impactIcon} />
               <Text style={styles.impactValue}>
                 {profile?.level || 1}
               </Text>
@@ -124,7 +141,7 @@ export default function HomeScreen() {
         {/* Bottom Quote */}
         <View style={styles.quoteBox}>
           <Text style={styles.quoteText}>
-            {'"Every spell you cast brings us closer to a world where nature thrives. Keep casting, Eco-Wizard!"'}
+            "Every spell you cast brings us closer to a world where nature thrives. Keep casting, Eco-Wizard!"
           </Text>
           <Text style={styles.quoteAuthor}>— The Grand EcoMage</Text>
         </View>
@@ -138,7 +155,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: MagicColors.darkBg,
+    backgroundColor: MagicColors.parchment,
   },
   scrollContent: {
     paddingBottom: 20,
@@ -153,62 +170,80 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  rabbitAnimation: {
+    width: 80,
+    height: 80,
+  },
+  rabbitLottie: {
+    width: 80,
+    height: 80,
+  },
   greeting: {
     fontSize: 16,
     color: MagicColors.textSecondary,
+    fontFamily: Fonts.body,
   },
   wizardName: {
-    color: MagicColors.gold,
-    fontWeight: '700',
+    color: MagicColors.emeraldDeep,
+    fontWeight: FontWeights.bold,
   },
   headerSubtitle: {
     fontSize: 26,
-    fontWeight: '800',
+    fontWeight: FontWeights.extrabold,
     color: MagicColors.textPrimary,
     marginTop: 4,
-  },
-  headerLogoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  headerBrandName: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: MagicColors.gold,
-    letterSpacing: 1,
+    fontFamily: Fonts.heading,
   },
 
   // Mission Banner
   missionBanner: {
     flexDirection: 'row',
-    backgroundColor: MagicColors.emeraldDeep + '40',
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: MagicColors.goldAmber,
+    borderRadius: 20,
+    padding: 20,
     marginHorizontal: 20,
     marginTop: 20,
     marginBottom: 8,
-    borderWidth: 1,
-    borderColor: MagicColors.emeraldDark + '50',
+    borderWidth: 0,
     alignItems: 'center',
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 8px 20px rgba(0, 0, 0, 0.25)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.25,
+        shadowRadius: 16,
+        elevation: 6,
+      },
+    }),
   },
-  missionIcon: {
-    fontSize: 36,
-    marginRight: 12,
+  missionIconContainer: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
   },
   missionText: {
     flex: 1,
   },
   missionTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: MagicColors.emerald,
+    fontSize: 17,
+    fontWeight: FontWeights.bold,
+    color: MagicColors.textLight,
+    fontFamily: Fonts.heading,
   },
   missionDescription: {
     fontSize: 13,
-    color: MagicColors.textSecondary,
-    marginTop: 2,
+    color: MagicColors.textLight,
+    marginTop: 4,
     lineHeight: 18,
+    fontFamily: Fonts.body,
+    opacity: 0.9,
   },
 
   // Spells Section
@@ -217,70 +252,114 @@ const styles = StyleSheet.create({
     marginTop: 24,
     marginBottom: 8,
   },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: FontSizes.sectionHeader,
+    fontWeight: FontWeights.bold,
     color: MagicColors.textPrimary,
-    paddingHorizontal: 24,
-    marginTop: 20,
+    fontFamily: Fonts.heading,
   },
   sectionSubtitle: {
     fontSize: 13,
     color: MagicColors.textSecondary,
     marginTop: 4,
+    fontFamily: Fonts.body,
   },
 
   // Impact Stats
   impactSection: {
     marginTop: 8,
+    paddingHorizontal: 24,
   },
   impactGrid: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
     marginTop: 12,
     gap: 10,
   },
   impactCard: {
     flex: 1,
-    backgroundColor: MagicColors.darkCard,
+    backgroundColor: MagicColors.offWhiteSolid,
     borderRadius: 16,
     padding: 16,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: MagicColors.border,
+    borderWidth: 2,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.06)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        elevation: 2,
+      },
+    }),
+  },
+  impactCardEmerald: {
+    borderColor: MagicColors.borderEmerald,
+  },
+  impactCardPurple: {
+    borderColor: MagicColors.borderPurple,
+  },
+  impactCardGold: {
+    borderColor: MagicColors.borderAmber,
+  },
+  impactIcon: {
+    marginBottom: 8,
   },
   impactValue: {
     fontSize: 24,
-    fontWeight: '800',
-    color: MagicColors.emerald,
+    fontWeight: FontWeights.extrabold,
+    color: MagicColors.textPrimary,
+    fontFamily: Fonts.mono,
   },
   impactLabel: {
     fontSize: 11,
     color: MagicColors.textSecondary,
     marginTop: 4,
     textAlign: 'center',
+    fontFamily: Fonts.body,
   },
 
   // Quote
   quoteBox: {
     marginHorizontal: 20,
     marginTop: 24,
-    backgroundColor: MagicColors.darkCard,
+    backgroundColor: MagicColors.cream,
     borderRadius: 16,
     padding: 20,
-    borderLeftWidth: 3,
+    borderLeftWidth: 4,
     borderLeftColor: MagicColors.gold,
+    ...Platform.select({
+      web: {
+        boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.06)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
+        elevation: 1,
+      },
+    }),
   },
   quoteText: {
     fontSize: 14,
     color: MagicColors.textSecondary,
     fontStyle: 'italic',
     lineHeight: 21,
+    fontFamily: Fonts.body,
   },
   quoteAuthor: {
     fontSize: 12,
     color: MagicColors.goldDark,
     marginTop: 8,
-    fontWeight: '600',
+    fontWeight: FontWeights.semibold,
+    fontFamily: Fonts.heading,
   },
 });

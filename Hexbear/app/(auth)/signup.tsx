@@ -12,8 +12,8 @@ import {
 import { Link } from 'expo-router';
 import { MagicColors } from '@/constants/theme';
 import { MagicButton } from '@/components/MagicButton';
-import { LogoMark } from '@/components/LogoMark';
 import { useAuth } from '@/contexts/AuthContext';
+import { LottieAnimation } from '@/components/LottieAnimation';
 
 export default function SignUpScreen() {
   const [wizardName, setWizardName] = useState('');
@@ -58,9 +58,16 @@ export default function SignUpScreen() {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Logo + Title */}
+        {/* Title */}
         <View style={styles.header}>
-          <LogoMark size="large" />
+          <View style={styles.animationContainer}>
+            <LottieAnimation
+              source={require('@/assets/animations/magician.json')}
+              loop={true}
+              autoPlay={true}
+              style={styles.lottieAnimation}
+            />
+          </View>
           <Text style={styles.appName}>Hexbear</Text>
           <Text style={styles.subtitle}>Join the Order of EcoMages</Text>
         </View>
@@ -133,7 +140,7 @@ export default function SignUpScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0B1F2A',
+    backgroundColor: MagicColors.parchment,
   },
   scrollContent: {
     flexGrow: 1,
@@ -143,6 +150,15 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     marginBottom: 36,
+  },
+  animationContainer: {
+    width: 200,
+    height: 200,
+    marginBottom: 10,
+  },
+  lottieAnimation: {
+    width: 200,
+    height: 200,
   },
   appName: {
     fontSize: 36,
