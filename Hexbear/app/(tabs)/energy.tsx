@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -23,6 +23,7 @@ import {
   AVG_MONTHLY_KWH,
 } from '@/constants/energy-data';
 import { Ionicons } from '@expo/vector-icons';
+import { ENERGY_TIPS, getRandomItem } from '@/constants/eco-facts';
 
 type SpellStage = 'intro' | 'camera' | 'analyzing' | 'result';
 
@@ -47,6 +48,7 @@ interface EnergyReading {
 }
 
 export default function EnergyScreen() {
+  const randomTip = useMemo(() => getRandomItem(ENERGY_TIPS), []);
   const [monthlyKWh, setMonthlyKWh] = useState('');
   const [readings, setReadings] = useState<EnergyReading[]>([]);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -253,9 +255,7 @@ export default function EnergyScreen() {
             </Text>
           </View>
           <Text style={styles.tipsText}>
-            Switching to LED bulbs can save up to 75% of lighting energy.
-            That is a powerful spell for your electricity bill and the
-            planet!
+            {randomTip}
           </Text>
         </View>
 

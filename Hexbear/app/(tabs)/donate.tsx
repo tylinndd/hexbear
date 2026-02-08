@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -25,8 +25,10 @@ import {
   fetchNearbyDonationSites,
 } from '@/constants/donation-sites';
 import { Ionicons } from '@expo/vector-icons';
+import { DONATION_FACTS, getRandomItem } from '@/constants/eco-facts';
 
 export default function DonateScreen() {
+  const randomDonationFact = useMemo(() => getRandomItem(DONATION_FACTS), []);
   const [sites, setSites] = useState<DonationSite[]>(DEMO_DONATION_SITES);
   const [selectedSite, setSelectedSite] = useState<DonationSite | null>(null);
   const [userLocation, setUserLocation] = useState<{
@@ -369,7 +371,7 @@ export default function DonateScreen() {
         }! This could feed ~${FOOD_WASTE_STATS.mealsPerDonation} people today.`}
         pointsAwarded={FOOD_WASTE_STATS.pointsPerDonation}
         co2Saved={`${FOOD_WASTE_STATS.co2PerDonation} kg`}
-        funFact="Uneaten food in landfills accounts for 8% of global emissions. Thank you for being part of the solution!"
+        funFact={randomDonationFact}
         onClose={() => {
           setShowSuccess(false);
           setSelectedSite(null);

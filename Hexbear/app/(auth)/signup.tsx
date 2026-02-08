@@ -149,29 +149,35 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: 36,
+    marginBottom: 40,
   },
   animationContainer: {
     width: 200,
     height: 200,
     marginBottom: 10,
+    alignSelf: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 50,
   },
   lottieAnimation: {
     width: 200,
     height: 200,
   },
   appName: {
-    fontSize: 36,
+    fontSize: 52,
     fontWeight: '800',
     color: MagicColors.gold,
     letterSpacing: 2,
     marginTop: 16,
+    fontFamily: Platform.OS === 'ios' ? 'Baskerville-Bold' : 'serif',
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 19,
     color: '#7ED957',
     marginTop: 6,
     fontWeight: '600',
+    fontFamily: Platform.OS === 'ios' ? 'Baskerville' : 'serif',
   },
   form: {
     gap: 16,

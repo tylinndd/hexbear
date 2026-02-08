@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,10 +14,12 @@ import { PointsDisplay } from '@/components/PointsDisplay';
 import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { LottieAnimation } from '@/components/LottieAnimation';
+import { HOME_QUOTES, getRandomItem } from '@/constants/eco-facts';
 
 export default function HomeScreen() {
   const router = useRouter();
   const { profile } = useAuth();
+  const randomQuote = useMemo(() => getRandomItem(HOME_QUOTES), []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -141,9 +143,9 @@ export default function HomeScreen() {
         {/* Bottom Quote */}
         <View style={styles.quoteBox}>
           <Text style={styles.quoteText}>
-            "Every spell you cast brings us closer to a world where nature thrives. Keep casting, Eco-Wizard!"
+            "{randomQuote.text}"
           </Text>
-          <Text style={styles.quoteAuthor}>— The Grand EcoMage</Text>
+          <Text style={styles.quoteAuthor}>— {randomQuote.author}</Text>
         </View>
 
         <View style={{ height: 24 }} />
