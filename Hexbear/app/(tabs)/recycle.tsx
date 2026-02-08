@@ -22,7 +22,56 @@ import {
 } from '@/constants/recycling-data';
 import { Ionicons } from '@expo/vector-icons';
 
-type SpellStage = 'intro' | 'camera' | 'analyzing' | 'result' | 'proof' | 'uploading';
+type SpellStage = 'intro' | 'camera' | 'analyzing' | 'result' | 'proof' | 'verifying' | 'proof_failed' | 'uploading';
+
+// ─── Recycling-bin verification keywords ───────────────────────────────
+// Positive labels that strongly suggest a recycling bin (not a regular waste bin)
+const RECYCLE_BIN_POSITIVE_LABELS: Record<string, number> = {
+  'recycling bin': 10,
+  'recycling': 6,
+  'recycle': 6,
+  'recyclable': 5,
+  'recycling container': 10,
+  'blue bin': 8,
+  'green bin': 5,
+  'waste sorting': 7,
+  'separate collection': 7,
+  'commingled recycling': 9,
+  'recycling station': 9,
+  'recycling center': 9,
+  'recycling depot': 9,
+  'bottle bank': 7,
+  'can recycling': 8,
+  'paper recycling': 8,
+  'plastic recycling': 8,
+  'glass recycling': 8,
+  'waste container': 3,
+  'waste bin': 2,
+  'bin': 1,
+  'container': 1,
+  'bucket': 1,
+  'blue': 2,
+  'green': 1,
+};
+
+// Text found on recycling bins (case-insensitive matching)
+const RECYCLE_BIN_TEXT_KEYWORDS = [
+  'recycle', 'recyclables', 'recyclable', 'recycling',
+  'cans', 'bottles', 'paper', 'plastic', 'glass', 'aluminum',
+  'cardboard', 'mixed recycling', 'commingled', 'cans & bottles',
+  'bottles & cans', 'single stream', 'containers only',
+  '♻', // recycling symbol unicode
+];
+
+// Negative labels — if ONLY these appear, it's a regular trash bin
+const TRASH_BIN_NEGATIVE_LABELS = [
+  'trash', 'garbage', 'garbage bin', 'trash can', 'trash bin',
+  'landfill', 'general waste', 'non-recyclable', 'rubbish',
+  'refuse', 'dumpster',
+];
+
+/** Minimum score threshold to consider the proof photo valid */
+const PROOF_SCORE_THRESHOLD = 5;
 
 export default function RecycleScreen() {
   const [stage, setStage] = useState<SpellStage>('intro');
@@ -180,12 +229,174 @@ export default function RecycleScreen() {
       if (photo) {
         setProofPhotoUri(photo.uri);
         setProofPhotoBase64(photo.base64 || null);
-        setStage('uploading');
-        uploadAndComplete(photo.base64 || '');
+        setStage('verifying');
+        verifyRecyclingBin(photo.base64 || '');
       }
     } catch (err) {
       console.log('Proof photo capture error:', err);
       Alert.alert('Spell Misfire', 'Failed to capture proof photo. Try again.');
+    }
+  };
+
+  /**
+   * Analyze the proof photo using Vision API to verify it shows a recycling bin,
+   * not a regular trash/waste bin. Uses label detection, text detection, and
+   * logo detection to look for recycling-specific indicators.
+   */
+  const verifyRecyclingBin = async (base64: string) => {
+    try {
+      const response = await fetch(
+        `https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_VISION_API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            requests: [
+              {
+                image: { content: base64 },
+                features: [
+                  { type: 'LABEL_DETECTION', maxResults: 25 },
+                  { type: 'OBJECT_LOCALIZATION', maxResults: 10 },
+                  { type: 'TEXT_DETECTION', maxResults: 10 },
+                  { type: 'LOGO_DETECTION', maxResults: 5 },
+                ],
+              },
+            ],
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.error) {
+        console.log('Proof verification API error:', data.error);
+        // If the API fails, allow the user through with a warning
+        Alert.alert(
+          'Verification Unavailable',
+          'Could not verify the recycling bin photo. Proceeding anyway.'
+        );
+        setStage('uploading');
+        uploadAndComplete(base64);
+        return;
+      }
+
+      if (data.responses && data.responses[0]) {
+        const result = data.responses[0];
+
+        if (result.error) {
+          console.log('Proof verification request error:', result.error);
+          setStage('uploading');
+          uploadAndComplete(base64);
+          return;
+        }
+
+        // Gather all detected information
+        const labels = (result.labelAnnotations || []).map(
+          (l: { description: string; score: number }) => ({
+            text: l.description.toLowerCase(),
+            confidence: l.score,
+          })
+        );
+        const objectLabels = (result.localizedObjectAnnotations || []).map(
+          (o: { name: string; score: number }) => ({
+            text: o.name.toLowerCase(),
+            confidence: o.score,
+          })
+        );
+        const textAnnotations = (result.textAnnotations || []).map(
+          (t: { description: string }) => t.description.toLowerCase()
+        );
+        const logoAnnotations = (result.logoAnnotations || []).map(
+          (l: { description: string }) => l.description.toLowerCase()
+        );
+
+        const allDetected = [...labels, ...objectLabels];
+        const allText = textAnnotations.join(' ');
+
+        console.log('Proof - Labels:', labels.map(l => l.text));
+        console.log('Proof - Objects:', objectLabels.map(o => o.text));
+        console.log('Proof - Text:', textAnnotations);
+        console.log('Proof - Logos:', logoAnnotations);
+
+        // ── Score calculation ──
+        let score = 0;
+
+        // 1) Check labels against positive recycling-bin keywords
+        for (const item of allDetected) {
+          for (const [keyword, weight] of Object.entries(RECYCLE_BIN_POSITIVE_LABELS)) {
+            if (item.text.includes(keyword)) {
+              score += weight * item.confidence;
+            }
+          }
+        }
+
+        // 2) Check detected text for recycling keywords
+        for (const keyword of RECYCLE_BIN_TEXT_KEYWORDS) {
+          if (allText.includes(keyword)) {
+            score += 6; // text on the bin itself is strong evidence
+          }
+        }
+
+        // 3) Check logos for recycling symbol
+        for (const logo of logoAnnotations) {
+          if (
+            logo.includes('recycl') ||
+            logo.includes('♻') ||
+            logo.includes('recycle') ||
+            logo.includes('green dot')
+          ) {
+            score += 8;
+          }
+        }
+
+        // 4) Penalty if trash-only labels detected
+        let hasTrashLabel = false;
+        let hasRecycleLabel = false;
+        for (const item of allDetected) {
+          for (const trashWord of TRASH_BIN_NEGATIVE_LABELS) {
+            if (item.text.includes(trashWord)) {
+              hasTrashLabel = true;
+            }
+          }
+          // Check if any recycling-specific label exists alongside
+          if (
+            item.text.includes('recycl') ||
+            item.text.includes('recycle') ||
+            item.text.includes('recyclable')
+          ) {
+            hasRecycleLabel = true;
+          }
+        }
+
+        // If trash labels found but no recycling labels, apply a penalty
+        if (hasTrashLabel && !hasRecycleLabel) {
+          score -= 10;
+        }
+
+        console.log(`Proof verification score: ${score} (threshold: ${PROOF_SCORE_THRESHOLD})`);
+
+        if (score >= PROOF_SCORE_THRESHOLD) {
+          // Verified! Proceed to upload
+          setStage('uploading');
+          uploadAndComplete(base64);
+        } else {
+          // Failed verification
+          setStage('proof_failed');
+        }
+      } else {
+        // No response — let through with warning
+        setStage('uploading');
+        uploadAndComplete(base64);
+      }
+    } catch (err) {
+      console.log('Proof verification network error:', err);
+      // On network failure, allow through
+      Alert.alert(
+        'Verification Unavailable',
+        'Network issue during verification. Proceeding anyway.'
+      );
+      setStage('uploading');
+      uploadAndComplete(base64);
     }
   };
 
@@ -356,9 +567,8 @@ export default function RecycleScreen() {
                   size="small"
                   onPress={() => {
                     if (stage === 'proof') {
-                      // Skip proof — still award points but without proof photo
-                      setStage('uploading');
-                      uploadAndComplete('');
+                      // Skip proof — go back to result screen
+                      setStage('result');
                     } else {
                       setStage('intro');
                     }
@@ -477,6 +687,81 @@ export default function RecycleScreen() {
             </View>
           )}
 
+          {stage === 'verifying' && (
+            <View style={styles.analyzingContainer}>
+              {proofPhotoUri && (
+                <Image source={{ uri: proofPhotoUri }} style={styles.previewImage} />
+              )}
+              <ActivityIndicator
+                size="large"
+                color={MagicColors.recycleGreen}
+                style={{ marginTop: 24 }}
+              />
+              <View style={styles.analyzingTextRow}>
+                <Ionicons name="shield-checkmark" size={20} color={MagicColors.recycleGreen} />
+                <Text style={styles.analyzingText}>
+                  Verifying Recycling Bin...
+                </Text>
+              </View>
+              <Text style={styles.analyzingSubtext}>
+                Checking that this is a proper recycling bin
+              </Text>
+            </View>
+          )}
+
+          {stage === 'proof_failed' && (
+            <View style={styles.resultContainer}>
+              {proofPhotoUri && (
+                <Image source={{ uri: proofPhotoUri }} style={styles.previewImage} />
+              )}
+
+              <View style={[styles.resultBadge, styles.resultNotRecyclable]}>
+                <Ionicons
+                  name="close-circle"
+                  size={24}
+                  color={MagicColors.crimson}
+                  style={styles.resultBadgeIcon}
+                />
+                <Text style={styles.resultBadgeText}>
+                  Not a Recycling Bin
+                </Text>
+              </View>
+
+              <View style={styles.proofFailedBox}>
+                <Ionicons name="warning" size={32} color={MagicColors.goldDark} style={{ marginBottom: 8 }} />
+                <Text style={styles.proofFailedTitle}>
+                  Verification Failed
+                </Text>
+                <Text style={styles.proofFailedText}>
+                  We couldn't confirm this is a recycling bin. Please make sure:{'\n\n'}
+                  • The recycling bin or its recycling symbol is visible{'\n'}
+                  • Any text like "Recycle" or "Recyclables" is in the photo{'\n'}
+                  • It's not a regular trash or garbage bin{'\n\n'}
+                  Try again with a clearer photo of the recycling bin.
+                </Text>
+              </View>
+
+              <View style={styles.resultActions}>
+                <MagicButton
+                  title="Retake Proof Photo"
+                  iconName="camera"
+                  onPress={() => setStage('proof')}
+                  size="large"
+                  variant="emerald"
+                  style={{ width: '100%' }}
+                />
+                <MagicButton
+                  title="Scan a Different Item"
+                  variant="outline"
+                  iconName="refresh"
+                  onPress={resetSpell}
+                  size="large"
+                  style={{ width: '100%' }}
+                />
+              </View>
+            </View>
+          )}
+
           {stage === 'uploading' && (
             <View style={styles.analyzingContainer}>
               {/* Show both photos side by side */}
@@ -576,7 +861,7 @@ export default function RecycleScreen() {
                         onPress={confirmRecycle}
                         size="large"
                         variant="emerald"
-                        style={{ flex: 1, marginRight: 8 }}
+                        style={{ width: '100%' }}
                       />
                     )}
                     <MagicButton
@@ -585,7 +870,7 @@ export default function RecycleScreen() {
                       iconName="refresh"
                       onPress={resetSpell}
                       size="large"
-                      style={{ flex: material.recyclable ? 0.6 : 1 }}
+                      style={{ width: '100%' }}
                     />
                   </View>
                 </>
@@ -999,8 +1284,8 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.body,
   },
   resultActions: {
-    flexDirection: 'row',
-    gap: 8,
+    flexDirection: 'column',
+    gap: 10,
   },
 
   // Proof camera
@@ -1050,6 +1335,31 @@ const styles = StyleSheet.create({
     backgroundColor: MagicColors.offWhiteSolid,
     borderWidth: 2,
     borderColor: MagicColors.borderLight,
+  },
+
+  // Proof failed
+  proofFailedBox: {
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 20,
+    padding: 20,
+    backgroundColor: MagicColors.crimson + '08',
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: MagicColors.crimson + '40',
+  },
+  proofFailedTitle: {
+    fontSize: 20,
+    fontWeight: FontWeights.bold,
+    color: MagicColors.textPrimary,
+    marginBottom: 10,
+    fontFamily: Fonts.heading,
+  },
+  proofFailedText: {
+    fontSize: 14,
+    color: MagicColors.textSecondary,
+    lineHeight: 22,
+    fontFamily: Fonts.body,
   },
 
   // No result
