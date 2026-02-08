@@ -40,3 +40,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 
 // Google Cloud Vision API key for recyclability analysis
 export const GOOGLE_VISION_API_KEY = 'AIzaSyDzIM-Amd0kyvGiG2mKdvQUlocwSYRacsM';
+
+// Same Google Cloud project key — also used for Places API (Nearby Search)
+// Requires "Places API" to be enabled in the Google Cloud Console.
+export const GOOGLE_PLACES_API_KEY = GOOGLE_VISION_API_KEY;

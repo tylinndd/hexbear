@@ -1,7 +1,15 @@
 /**
- * Demo donation sites for the Food Rescue Portal spell.
- * In production, these would come from the Google Places API.
+ * Donation sites for the Food Rescue Portal spell.
+ *
+ * Supports two modes:
+ *   1) Live search via Google Places API (Nearby Search) — returns real
+ *      food banks, food pantries, shelters, and community fridges near the
+ *      user's current location.
+ *   2) Hardcoded demo sites (Athens, GA) used as a fallback when the API
+ *      is unavailable or the key doesn't have the Places API enabled.
  */
+
+import { GOOGLE_PLACES_API_KEY } from '@/lib/supabase';
 
 export interface DonationSite {
   id: string;
@@ -150,3 +158,179 @@ export const FOOD_WASTE_STATS = {
   mealsPerDonation: 5, // estimated meals per average donation
   methaneMultiplier: 25, // methane is 25x more potent than CO₂
 };
+
+// ─── Google Places API integration ────────────────────────────────────
+
+/**
+ * Search keywords we cycle through to find food-donation-related places.
+ * Each keyword produces a separate Nearby Search request; results are
+ * merged and deduplicated by place_id.
+ */
+const DONATION_SEARCH_KEYWORDS = [
+  'food bank',
+  'food pantry',
+  'community fridge',
+  'food donation',
+  'soup kitchen',
+  'homeless shelter food',
+];
+
+/** Radius in metres (~10 miles) */
+const SEARCH_RADIUS_M = 16000;
+
+/** Default accepted items when the Places API doesn't tell us */
+const DEFAULT_ACCEPTED_ITEMS = [
+  'Canned goods',
+  'Fresh produce',
+  'Packaged foods',
+  'Non-perishable items',
+];
+
+/**
+ * Classify a Google Places result into one of the app's site types based
+ * on its name and the keyword that matched it.
+ */
+function classifySiteType(
+  name: string,
+  keyword: string
+): DonationSite['type'] {
+  const lower = (name + ' ' + keyword).toLowerCase();
+  if (lower.includes('fridge')) return 'community_fridge';
+  if (lower.includes('pantry')) return 'pantry';
+  if (lower.includes('shelter') || lower.includes('salvation') || lower.includes('soup'))
+    return 'shelter';
+  return 'food_bank';
+}
+
+/**
+ * Build a short description from the place name and type.
+ */
+function buildDescription(name: string, type: DonationSite['type']): string {
+  switch (type) {
+    case 'community_fridge':
+      return `${name} is a community fridge where anyone can leave or take food.`;
+    case 'pantry':
+      return `${name} provides food assistance to individuals and families in the area.`;
+    case 'shelter':
+      return `${name} offers meals and support services to those in need.`;
+    case 'food_bank':
+    default:
+      return `${name} collects and distributes food to those in need in the community.`;
+  }
+}
+
+/**
+ * Fetch real nearby donation sites using Google Places API (Nearby Search).
+ *
+ * Returns an array of `DonationSite` objects sorted by distance from the
+ * user.  Falls back to `null` on any error so the caller can use the demo
+ * data instead.
+ *
+ * Requires the **Places API** to be enabled on the same Google Cloud
+ * project as the Vision API key.
+ */
+export async function fetchNearbyDonationSites(
+  latitude: number,
+  longitude: number
+): Promise<DonationSite[] | null> {
+  try {
+    // Fire requests for each keyword in parallel
+    const allResults: Map<string, { place: any; keyword: string }> = new Map();
+
+    await Promise.all(
+      DONATION_SEARCH_KEYWORDS.map(async (keyword) => {
+        const url =
+          `https://maps.googleapis.com/maps/api/place/nearbysearch/json` +
+          `?location=${latitude},${longitude}` +
+          `&radius=${SEARCH_RADIUS_M}` +
+          `&keyword=${encodeURIComponent(keyword)}` +
+          `&key=${GOOGLE_PLACES_API_KEY}`;
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.status === 'REQUEST_DENIED') {
+          // API key doesn't have Places API enabled
+          console.log(
+            `Places API denied for keyword "${keyword}":`,
+            data.error_message
+          );
+          return;
+        }
+
+        if (data.results && Array.isArray(data.results)) {
+          for (const place of data.results) {
+            if (!allResults.has(place.place_id)) {
+              allResults.set(place.place_id, { place, keyword });
+            }
+          }
+        }
+      })
+    );
+
+    if (allResults.size === 0) {
+      console.log('Places API returned no results (API may not be enabled)');
+      return null;
+    }
+
+    // Convert Google Places results → DonationSite[]
+    const sites: DonationSite[] = [];
+
+    for (const [placeId, { place, keyword }] of allResults) {
+      const type = classifySiteType(place.name || '', keyword);
+
+      sites.push({
+        id: placeId,
+        name: place.name || 'Unknown Site',
+        address: place.vicinity || place.formatted_address || 'Address unavailable',
+        type,
+        latitude: place.geometry?.location?.lat ?? 0,
+        longitude: place.geometry?.location?.lng ?? 0,
+        hours: place.opening_hours?.open_now
+          ? 'Open now'
+          : place.opening_hours
+          ? 'Currently closed'
+          : 'Hours not available',
+        phone: undefined, // Nearby Search doesn't return phone; Place Details would
+        acceptedItems: DEFAULT_ACCEPTED_ITEMS,
+        description: buildDescription(place.name || 'This site', type),
+      });
+    }
+
+    // Sort by distance from user
+    sites.sort((a, b) => {
+      const distA = haversine(latitude, longitude, a.latitude, a.longitude);
+      const distB = haversine(latitude, longitude, b.latitude, b.longitude);
+      return distA - distB;
+    });
+
+    // Attach readable distance strings
+    for (const site of sites) {
+      const miles = haversine(latitude, longitude, site.latitude, site.longitude);
+      site.distance = miles.toFixed(1);
+    }
+
+    return sites;
+  } catch (err) {
+    console.log('fetchNearbyDonationSites error:', err);
+    return null;
+  }
+}
+
+/** Haversine distance in miles */
+function haversine(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number {
+  const R = 3959;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}

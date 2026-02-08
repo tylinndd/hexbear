@@ -9,6 +9,7 @@ import {
   Linking,
   Alert,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import * as Location from 'expo-location';
 import { MagicColors, Fonts, FontWeights, FontSizes } from '@/constants/theme';
@@ -21,6 +22,7 @@ import {
   getSiteTypeLabel,
   getSiteTypeIcon,
   FOOD_WASTE_STATS,
+  fetchNearbyDonationSites,
 } from '@/constants/donation-sites';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -32,6 +34,8 @@ export default function DonateScreen() {
     longitude: number;
   } | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [usingLiveData, setUsingLiveData] = useState(false);
+  const [loadingSites, setLoadingSites] = useState(false);
   const { logAction } = useAuth();
 
   useEffect(() => {
@@ -47,28 +51,37 @@ export default function DonateScreen() {
       }
 
       const location = await Location.getCurrentPositionAsync({});
-      setUserLocation({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      });
+      const { latitude, longitude } = location.coords;
 
-      // Sort sites by distance from user
+      setUserLocation({ latitude, longitude });
+      setLoadingSites(true);
+
+      // ── Try Google Places API first for real nearby sites ──
+      const liveSites = await fetchNearbyDonationSites(latitude, longitude);
+
+      if (liveSites && liveSites.length > 0) {
+        console.log(`Places API returned ${liveSites.length} real sites`);
+        setSites(liveSites);
+        setUsingLiveData(true);
+        setLoadingSites(false);
+        return;
+      }
+
+      // ── Fallback: use demo data sorted by distance ──
+      console.log('Falling back to demo donation sites');
       const sorted = [...DEMO_DONATION_SITES].map((site) => ({
         ...site,
-        distance: calculateDistance(
-          location.coords.latitude,
-          location.coords.longitude,
-          site.latitude,
-          site.longitude
-        ),
+        distance: calculateDistance(latitude, longitude, site.latitude, site.longitude),
       }));
       sorted.sort(
         (a, b) =>
           parseFloat(a.distance || '999') - parseFloat(b.distance || '999')
       );
       setSites(sorted);
+      setLoadingSites(false);
     } catch (err) {
       console.log('Location error:', err);
+      setLoadingSites(false);
     }
   };
 
@@ -93,14 +106,22 @@ export default function DonateScreen() {
   };
 
   const openDirections = (site: DonationSite) => {
+    // For live data (Google Places) the coordinates are accurate, so use
+    // them directly. For demo/fallback data use the address string because
+    // the hardcoded coordinates may be imprecise.
+    const destination = usingLiveData
+      ? `${site.latitude},${site.longitude}`
+      : encodeURIComponent(site.address);
+
     const url = Platform.select({
-      ios: `maps://app?daddr=${site.latitude},${site.longitude}`,
-      android: `google.navigation:q=${site.latitude},${site.longitude}`,
-      default: `https://www.google.com/maps/dir/?api=1&destination=${site.latitude},${site.longitude}`,
+      ios: `maps://app?daddr=${destination}`,
+      android: `google.navigation:q=${destination}`,
+      default: `https://www.google.com/maps/dir/?api=1&destination=${destination}`,
     });
 
     if (url) {
       Linking.openURL(url).catch(() => {
+        // Fallback: always try the address string via Google Maps web
         Linking.openURL(
           `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
             site.address
@@ -255,11 +276,28 @@ export default function DonateScreen() {
             </Text>
           </View>
           <Text style={styles.sectionSubtitle}>
-            Select a donation site to begin the spell
+            {usingLiveData
+              ? 'Real donation sites found near you'
+              : 'Select a donation site to begin the spell'}
           </Text>
+          {!usingLiveData && !loadingSites && (
+            <View style={styles.demoBanner}>
+              <Ionicons name="information-circle" size={16} color={MagicColors.goldDark} />
+              <Text style={styles.demoBannerText}>
+                Showing demo sites (Athens, GA). Enable the Places API on your Google Cloud project for live results near you.
+              </Text>
+            </View>
+          )}
         </View>
 
-        {sites.map((site) => (
+        {loadingSites && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={MagicColors.donateRose} />
+            <Text style={styles.loadingText}>Searching for nearby portals...</Text>
+          </View>
+        )}
+
+        {!loadingSites && sites.map((site) => (
           <TouchableOpacity
             key={site.id}
             style={[
@@ -292,8 +330,8 @@ export default function DonateScreen() {
           </TouchableOpacity>
         ))}
 
-        {/* No sites fallback */}
-        {sites.length === 0 && (
+        {/* No sites fallback — only shown when not loading */}
+        {!loadingSites && sites.length === 0 && (
           <View style={styles.emptyState}>
             <Ionicons name="compass-outline" size={48} color={MagicColors.textMuted} style={styles.emptyIcon} />
             <Text style={styles.emptyTitle}>No Portals Found</Text>
@@ -303,6 +341,7 @@ export default function DonateScreen() {
             </Text>
           </View>
         )}
+
 
         {/* Food waste info */}
         <View style={styles.infoCard}>
@@ -689,6 +728,50 @@ const styles = StyleSheet.create({
     color: MagicColors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
+  },
+
+  // Loading
+  loadingContainer: {
+    alignItems: 'center',
+    padding: 32,
+    backgroundColor: MagicColors.offWhiteSolid,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: MagicColors.borderLight,
+    marginBottom: 12,
+  },
+  loadingText: {
+    fontSize: 15,
+    color: MagicColors.textSecondary,
+    marginTop: 12,
+    fontFamily: Fonts.body,
+  },
+
+  // Demo banner
+  demoBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    marginTop: 8,
+    backgroundColor: MagicColors.gold + '15',
+    padding: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: MagicColors.borderAmber,
+  },
+  demoBannerText: {
+    flex: 1,
+    fontSize: 12,
+    color: MagicColors.goldDark,
+    lineHeight: 17,
+    fontFamily: Fonts.body,
+  },
+
+  // Section title row
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
 
   // Info card
