@@ -1,3 +1,4 @@
+#Link to demo - [https://youtu.be/zNZLKQuChu8]
 # Hexbear — Cast Spells. Save the World.
 
 Hexbear is a gamified climate-action mobile app that turns everyday sustainable habits into a magical wizard adventure. Users become "Eco-Wizards" who cast spells — recycling items, conserving energy, and rescuing surplus food — to earn Greenhouse Gas (GHG) points and level up through wizard ranks. Every action is tied to real-world environmental metrics (CO₂ saved, energy conserved, meals donated), making the impact of sustainability tangible and fun.
